@@ -7,6 +7,7 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
+import org.springframework.r2dbc.core.DatabaseClient;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
@@ -22,14 +23,60 @@ public class MentalHealthApplication {
         return new BCryptPasswordEncoder();
     }
 
-    // Mantenemos esto para crear el Admin al inicio siempre
+    // HE BORRADO EL BEAN 'r2dbcDialect'. Spring Boot lo configura solo.
+
+    /**
+     * SEMILLA DE DATOS MAESTROS
+     * Se ejecuta cada vez que arranca la aplicación.
+     */
     @Bean
-    public CommandLineRunner seedUsers(UserRepository userRepo, PasswordEncoder encoder) {
+    @org.springframework.context.annotation.Profile("!test")
+    public CommandLineRunner seedData(
+            UserRepository userRepo,
+            DatabaseClient databaseClient,
+            PasswordEncoder encoder) {
+
         return args -> {
-            var admin = new User(null, "admin", encoder.encode("password123"), Role.ROLE_ADMIN);
-            userRepo.findByUsername("admin")
-                    .switchIfEmpty(userRepo.save(admin))
-                    .subscribe();
+            System.out.println("🌱 INICIANDO CARGA DE DATOS...");
+
+            // 1. Limpiar tablas (Orden inverso a las Foreign Keys)
+            databaseClient.sql("DELETE FROM \"appointments\"").fetch().rowsUpdated().block();
+            databaseClient.sql("DELETE FROM \"patients\"").fetch().rowsUpdated().block();
+            databaseClient.sql("DELETE FROM \"psychologists\"").fetch().rowsUpdated().block();
+            databaseClient.sql("DELETE FROM \"rooms\"").fetch().rowsUpdated().block();
+            databaseClient.sql("DELETE FROM \"users\"").fetch().rowsUpdated().block();
+
+            // 2. Crear Usuarios (Identity Layer)
+            var admin = userRepo.save(new User(null, "admin", encoder.encode("123"), Role.ROLE_ADMIN)).block();
+            var doc = userRepo.save(new User(null, "doc", encoder.encode("123"), Role.ROLE_PSYCHOLOGIST)).block();
+            var pepe = userRepo.save(new User(null, "pepe", encoder.encode("123"), Role.ROLE_PATIENT)).block();
+
+            System.out.println("👤 Usuarios creados: Admin(ID=" + admin.id() + "), Doc(ID=" + doc.id() + "), Pepe(ID=" + pepe.id() + ")");
+
+            // 3. Insertar Datos de Negocio (Business Layer) sincronizados con los IDs de Usuario
+
+            // Insertar Psicólogo
+            databaseClient.sql("INSERT INTO \"psychologists\" (id, name, specialty) VALUES (:id, :name, :spec)")
+                    .bind("id", doc.id())
+                    .bind("name", "Dr. Strange")
+                    .bind("spec", "Misticismo")
+                    .fetch().rowsUpdated().block();
+
+            // Insertar Paciente
+            databaseClient.sql("INSERT INTO \"patients\" (id, name, email) VALUES (:id, :name, :email)")
+                    .bind("id", pepe.id())
+                    .bind("name", "Pepe Grillo")
+                    .bind("email", "pepe@test.com")
+                    .fetch().rowsUpdated().block();
+
+            // Insertar Sala
+            databaseClient.sql("INSERT INTO \"rooms\" (id, name) VALUES (1, 'Sala Suprema')")
+                    .fetch().rowsUpdated().block();
+
+            System.out.println("✅ DATOS MAESTROS CARGADOS: Listo para probar IA.");
+            System.out.println("👉 Login Admin: username='admin', pass='123'");
+            System.out.println("👉 Login Doc:   username='doc',   pass='123'");
+            System.out.println("👉 Login Pepe:  username='pepe',  pass='123'");
         };
     }
 }

@@ -7,9 +7,13 @@ import com.clinica.mentalhealth.domain.Patient;
 import org.springframework.data.repository.reactive.ReactiveCrudRepository;
 
 // 3. Reactor Core
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 // 4. La definición
 public interface PatientRepository extends ReactiveCrudRepository<Patient, Long> {
     Mono<Patient> findByEmail(String email);
+
+    // Dejamos que Spring Data derive la consulta del nombre del método
+    Flux<Patient> findByNameLike(String name);
 }

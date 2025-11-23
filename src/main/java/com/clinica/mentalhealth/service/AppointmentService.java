@@ -22,36 +22,16 @@ public class AppointmentService {
 
     private final AppointmentRepository appointmentRepository;
 
-    // Reglas de horario
     private static final LocalTime OPENING_TIME = LocalTime.of(8, 0);
     private static final LocalTime CLOSING_TIME = LocalTime.of(22, 0);
 
-    /**
-     * Obtener citas FILTRADAS por el rol del usuario actual.
-     * - Admin: Ve todas.
-     * - Psicólogo: Ve solo las suyas.
-     * - Paciente: Ve solo las suyas.
-     */
-    public Flux<Appointment> getMyAppointments() {
-        return ReactiveSecurityContextHolder.getContext()
-                .mapNotNull(ctx -> Objects.requireNonNull(ctx.getAuthentication()).getPrincipal())
-                .cast(UserPrincipal.class)
-                .flatMapMany(user -> {
-                    if ("ROLE_ADMIN".equals(user.role())) {
-                        return appointmentRepository.findAll();
-                    } else if ("ROLE_PSYCHOLOGIST".equals(user.role())) {
-                        return appointmentRepository.findByPsychologistId(user.id());
-                    } else if ("ROLE_PATIENT".equals(user.role())) {
-                        return appointmentRepository.findByPatientId(user.id());
-                    }
-                    return Flux.empty();
-                });
-    }
+    // =================================================================
+    // 1. MÉTODOS PÚBLICOS (Puntos de entrada)
+    // =================================================================
 
     /**
-     * Crear Cita.
-     * - Admin/Psicólogo: Pueden agendar libremente (validando ids).
-     * - Paciente: Solo puede agendar para SÍ MISMO (Su ID = patientId).
+     * Entrada para API REST (Controllers).
+     * Se encarga de la seguridad (contexto) y delega la lógica.
      */
     @Transactional
     public Mono<Appointment> createAppointment(Appointment appointment) {
@@ -59,32 +39,52 @@ public class AppointmentService {
                 .mapNotNull(ctx -> Objects.requireNonNull(ctx.getAuthentication()).getPrincipal())
                 .cast(UserPrincipal.class)
                 .flatMap(user -> {
-
-                    // Regla de Seguridad: Si es Paciente, no puede agendar a nombre de otro
+                    // Validación de Seguridad: Propiedad de datos
                     if ("ROLE_PATIENT".equals(user.role())) {
                         if (!user.id().equals(appointment.patientId())) {
                             return Mono.error(new IllegalAccessException("Los pacientes solo pueden agendar sus propias citas."));
                         }
                     }
-
-                    // Reglas de Negocio (Horarios)
-                    try {
-                        validateBusinessHours(appointment);
-                    } catch (Exception e) {
-                        return Mono.error(e);
-                    }
-
-                    // Cadena de Validaciones de Disponibilidad
-                    return validatePsychologistAvailability(appointment)
-                            .then(validatePatientAvailability(appointment))
-                            .then(validateRoomAvailability(appointment))
-                            .then(appointmentRepository.save(appointment));
+                    // Delegamos al núcleo de negocio
+                    return processAppointment(appointment);
                 });
     }
 
     /**
-     * Consultar disponibilidad de sala (Solo Psicólogos y Admin)
+     * NUEVO: Entrada para IA (AiToolsConfig).
+     * Convierte datos crudos y delega la lógica.
      */
+    @Transactional
+    public Mono<Appointment> createFromAi(Long patientId, Long psychologistId, String dateString) {
+        try {
+            // 1. Conversión de datos (Adapter)
+            LocalDateTime start = LocalDateTime.parse(dateString);
+            LocalDateTime end = start.plusHours(1); // Duración estándar
+
+            // 2. Construcción del objeto (roomId=1 por defecto o lógica de asignación)
+            Appointment appt = new Appointment(null, start, end, patientId, psychologistId, 1L);
+
+            // 3. Delegamos al mismo núcleo de negocio (Reutilización total)
+            // Nota: Aquí asumimos que la IA (o el Prompt) ya validó quién es el usuario.
+            return processAppointment(appt);
+
+        } catch (Exception e) {
+            return Mono.error(new IllegalArgumentException("Error al procesar datos de la IA: " + e.getMessage()));
+        }
+    }
+
+    public Flux<Appointment> getMyAppointments() {
+        return ReactiveSecurityContextHolder.getContext()
+                .mapNotNull(ctx -> Objects.requireNonNull(ctx.getAuthentication()).getPrincipal())
+                .cast(UserPrincipal.class)
+                .flatMapMany(user -> {
+                    if ("ROLE_ADMIN".equals(user.role())) return appointmentRepository.findAll();
+                    if ("ROLE_PSYCHOLOGIST".equals(user.role())) return appointmentRepository.findByPsychologistId(user.id());
+                    if ("ROLE_PATIENT".equals(user.role())) return appointmentRepository.findByPatientId(user.id());
+                    return Flux.empty();
+                });
+    }
+
     @PreAuthorize("hasAnyRole('ADMIN', 'ROLE_PSYCHOLOGIST')")
     public Flux<Appointment> checkRoomAvailability(Long roomId, LocalDateTime date) {
         LocalDateTime startOfDay = date.toLocalDate().atStartOfDay();
@@ -92,7 +92,33 @@ public class AppointmentService {
         return appointmentRepository.findRoomConflicts(roomId, startOfDay, endOfDay);
     }
 
-    // --- Validaciones Internas (Sin cambios) ---
+    // =================================================================
+    // 2. NÚCLEO DE NEGOCIO (Privado/Reutilizable)
+    // =================================================================
+
+    /**
+     * Contiene la lógica pura de validación y persistencia.
+     * Es agnóstico de si viene por REST o por IA.
+     */
+    private Mono<Appointment> processAppointment(Appointment appointment) {
+        // 1. Validaciones Síncronas (Horarios)
+        try {
+            validateBusinessHours(appointment);
+        } catch (Exception e) {
+            return Mono.error(e);
+        }
+
+        // 2. Validaciones Asíncronas (Conflictos) y Guardado
+        return validatePsychologistAvailability(appointment)
+                .then(validatePatientAvailability(appointment))
+                .then(validateRoomAvailability(appointment))
+                .then(appointmentRepository.save(appointment));
+    }
+
+    // =================================================================
+    // 3. VALIDACIONES (Helpers)
+    // =================================================================
+
     private void validateBusinessHours(Appointment appt) {
         var start = appt.startTime();
         var end = appt.endTime();
