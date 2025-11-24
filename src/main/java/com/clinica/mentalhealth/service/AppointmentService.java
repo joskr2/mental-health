@@ -40,10 +40,8 @@ public class AppointmentService {
                 .cast(UserPrincipal.class)
                 .flatMap(user -> {
                     // Validación de Seguridad: Propiedad de datos
-                    if ("ROLE_PATIENT".equals(user.role())) {
-                        if (!user.id().equals(appointment.patientId())) {
-                            return Mono.error(new IllegalAccessException("Los pacientes solo pueden agendar sus propias citas."));
-                        }
+                    if ("ROLE_PATIENT".equals(user.role()) && !user.id().equals(appointment.patientId())) {
+                        return Mono.error(new IllegalAccessException("Los pacientes solo pueden agendar sus propias citas."));
                     }
                     // Delegamos al núcleo de negocio
                     return processAppointment(appointment);
@@ -112,7 +110,8 @@ public class AppointmentService {
         return validatePsychologistAvailability(appointment)
                 .then(validatePatientAvailability(appointment))
                 .then(validateRoomAvailability(appointment))
-                .then(appointmentRepository.save(appointment));
+                .then(Mono.just(appointment))
+                .flatMap(appointmentRepository::save);
     }
 
     // =================================================================
@@ -134,18 +133,18 @@ public class AppointmentService {
     private Mono<Void> validatePsychologistAvailability(Appointment appt) {
         return appointmentRepository.findPsychologistConflicts(appt.psychologistId(), appt.startTime(), appt.endTime())
                 .hasElements()
-                .flatMap(has -> has ? Mono.error(new IllegalStateException("Psicólogo ocupado.")) : Mono.empty());
+                .flatMap(has -> has.booleanValue() ? Mono.error(new IllegalStateException("Psicólogo ocupado.")) : Mono.empty());
     }
 
     private Mono<Void> validatePatientAvailability(Appointment appt) {
         return appointmentRepository.findPatientConflicts(appt.patientId(), appt.startTime(), appt.endTime())
                 .hasElements()
-                .flatMap(has -> has ? Mono.error(new IllegalStateException("Paciente ya tiene cita.")) : Mono.empty());
+                .flatMap(has -> has.booleanValue() ? Mono.error(new IllegalStateException("Paciente ya tiene cita.")) : Mono.empty());
     }
 
     private Mono<Void> validateRoomAvailability(Appointment appt) {
         return appointmentRepository.findRoomConflicts(appt.roomId(), appt.startTime(), appt.endTime())
                 .hasElements()
-                .flatMap(has -> has ? Mono.error(new IllegalStateException("Sala ocupada.")) : Mono.empty());
+                .flatMap(has -> has.booleanValue() ? Mono.error(new IllegalStateException("Sala ocupada.")) : Mono.empty());
     }
 }

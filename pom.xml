@@ -6,7 +6,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.4.0</version> <!-- ÚLTIMA ESTABLE -->
+        <version>3.5.8</version> <!-- ÚLTIMA ESTABLE -->
         <relativePath/>
     </parent>
 
@@ -22,6 +22,12 @@
     </properties>
 
     <dependencies>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+
         <!-- CORE -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

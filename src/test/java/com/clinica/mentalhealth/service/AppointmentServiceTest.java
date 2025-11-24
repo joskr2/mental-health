@@ -11,13 +11,15 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.ReactiveSecurityContextHolder;
+import org.springframework.test.context.ActiveProfiles;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
-@ExtendWith(MockitoExtension.class) // Usamos Mockito puro, sin Spring Context (¡Rapidísimo!)
+@ExtendWith(MockitoExtension.class)
+@ActiveProfiles("test") // Usamos Mockito puro, sin Spring Context (¡Rapidísimo!)
 class AppointmentServiceTest {
 
     @Mock

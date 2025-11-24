@@ -2,11 +2,9 @@ package com.clinica.mentalhealth;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ActiveProfiles;
 
-@SpringBootTest(properties = {
-        "spring.ai.openai.api-key=dummy",
-        "spring.ai.openai.base-url=https://api.deepseek.com"
-})
+@ActiveProfiles("test")
 class MentalHealthApplicationTests {
 
     @Test

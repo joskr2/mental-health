@@ -14,8 +14,6 @@ import java.util.function.Function;
 @Configuration
 public class AiToolsConfig {
 
-    // --- HERRAMIENTAS DE PACIENTES (Delegan a PatientService) ---
-
     @Bean
     @Description("Buscar pacientes en la base de datos por nombre parcial.")
     public Function<PatientSearchRequest, List<Patient>> searchPatientTool(PatientService patientService) {
@@ -31,14 +29,11 @@ public class AiToolsConfig {
                 .block();
     }
 
-    // --- HERRAMIENTAS DE CITAS (Delegan a AppointmentService) ---
-
     @Bean
     @Description("Reservar una cita médica. Requiere ID paciente, ID doctor y Fecha ISO.")
     public Function<BookingRequest, String> bookAppointmentTool(AppointmentService appointmentService) {
         return request -> {
             try {
-                // Reutilizamos la lógica centralizada (validación horarios, conflictos, etc.)
                 var cita = appointmentService.createFromAi(
                         request.patientId(),
                         request.psychologistId(),
@@ -47,7 +42,6 @@ public class AiToolsConfig {
 
                 return "ÉXITO: Cita creada correctamente con ID " + cita.id();
             } catch (Exception e) {
-                // Devolvemos el error de negocio a la IA para que se lo explique al usuario
                 return "ERROR AL AGENDAR: " + e.getMessage();
             }
         };

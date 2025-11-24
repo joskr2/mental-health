@@ -6,6 +6,7 @@ import com.clinica.mentalhealth.domain.User;
 import com.clinica.mentalhealth.repository.PatientRepository;
 import com.clinica.mentalhealth.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.r2dbc.core.DatabaseClient; // Importar esto
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,28 +20,30 @@ public class PatientService {
     private final PatientRepository patientRepository;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final DatabaseClient databaseClient; // Inyectamos el cliente SQL nativo
 
-    /**
-     * Busca pacientes por nombre (Wrapper del repositorio).
-     */
     public Flux<Patient> searchByName(String name) {
         return patientRepository.findByNameLike(name);
     }
 
-    /**
-     * Crea un paciente Y su usuario de acceso en una sola transacción.
-     * Esta es la lógica que antes tenías "hardcodeada" en la IA.
-     */
     @Transactional
     public Mono<Patient> createPatient(String name, String email) {
-        // 1. Crear Usuario (Pass por defecto '123')
+        // 1. Crear Usuario (ID nulo -> INSERT automático)
         User newUser = new User(null, email, passwordEncoder.encode("123"), Role.ROLE_PATIENT);
 
         return userRepository.save(newUser)
                 .flatMap(savedUser -> {
-                    // 2. Crear Paciente vinculado al ID del usuario
-                    Patient newPatient = new Patient(savedUser.id(), name, email);
-                    return patientRepository.save(newPatient);
+                    // 2. Insertar Paciente forzando el INSERT con SQL nativo
+                    // Esto evita que R2DBC intente hacer UPDATE por tener ID asignado
+                    String sql = "INSERT INTO \"patients\" (id, name, email) VALUES (:id, :name, :email)";
+
+                    return databaseClient.sql(sql)
+                            .bind("id", savedUser.id())
+                            .bind("name", name)
+                            .bind("email", email)
+                            .fetch()
+                            .rowsUpdated()
+                            .thenReturn(new Patient(savedUser.id(), name, email));
                 });
     }
 }

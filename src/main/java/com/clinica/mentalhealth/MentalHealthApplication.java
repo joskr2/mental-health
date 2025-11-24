@@ -3,6 +3,7 @@ package com.clinica.mentalhealth;
 import com.clinica.mentalhealth.domain.Role;
 import com.clinica.mentalhealth.domain.User;
 import com.clinica.mentalhealth.repository.UserRepository;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -11,6 +12,7 @@ import org.springframework.r2dbc.core.DatabaseClient;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+@Slf4j
 @SpringBootApplication
 public class MentalHealthApplication {
 
@@ -37,7 +39,7 @@ public class MentalHealthApplication {
             PasswordEncoder encoder) {
 
         return args -> {
-            System.out.println("🌱 INICIANDO CARGA DE DATOS...");
+            log.info("🌱 INICIANDO CARGA DE DATOS...");
 
             // 1. Limpiar tablas (Orden inverso a las Foreign Keys)
             databaseClient.sql("DELETE FROM \"appointments\"").fetch().rowsUpdated().block();
@@ -51,20 +53,21 @@ public class MentalHealthApplication {
             var doc = userRepo.save(new User(null, "doc", encoder.encode("123"), Role.ROLE_PSYCHOLOGIST)).block();
             var pepe = userRepo.save(new User(null, "pepe", encoder.encode("123"), Role.ROLE_PATIENT)).block();
 
-            System.out.println("👤 Usuarios creados: Admin(ID=" + admin.id() + "), Doc(ID=" + doc.id() + "), Pepe(ID=" + pepe.id() + ")");
+            log.info("👤 Usuarios creados: Admin(ID={}), Doc(ID={}), Pepe(ID={})", admin.id(), doc.id(), pepe.id());
 
-            // 3. Insertar Datos de Negocio (Business Layer) sincronizados con los IDs de Usuario
+            // 3. Insertar Datos de Negocio (Business Layer) sincronizados con los IDs de
+            // Usuario
 
             // Insertar Psicólogo
             databaseClient.sql("INSERT INTO \"psychologists\" (id, name, specialty) VALUES (:id, :name, :spec)")
-                    .bind("id", doc.id())
+                    .bind("id", java.util.Objects.requireNonNull(doc.id()))
                     .bind("name", "Dr. Strange")
                     .bind("spec", "Misticismo")
                     .fetch().rowsUpdated().block();
 
             // Insertar Paciente
             databaseClient.sql("INSERT INTO \"patients\" (id, name, email) VALUES (:id, :name, :email)")
-                    .bind("id", pepe.id())
+                    .bind("id", java.util.Objects.requireNonNull(pepe.id()))
                     .bind("name", "Pepe Grillo")
                     .bind("email", "pepe@test.com")
                     .fetch().rowsUpdated().block();
@@ -73,10 +76,10 @@ public class MentalHealthApplication {
             databaseClient.sql("INSERT INTO \"rooms\" (id, name) VALUES (1, 'Sala Suprema')")
                     .fetch().rowsUpdated().block();
 
-            System.out.println("✅ DATOS MAESTROS CARGADOS: Listo para probar IA.");
-            System.out.println("👉 Login Admin: username='admin', pass='123'");
-            System.out.println("👉 Login Doc:   username='doc',   pass='123'");
-            System.out.println("👉 Login Pepe:  username='pepe',  pass='123'");
+            log.info("✅ DATOS MAESTROS CARGADOS: Listo para probar IA.");
+            log.info("👉 Login Admin: username='admin', pass='123'");
+            log.info("👉 Login Doc:   username='doc',   pass='123'");
+            log.info("👉 Login Pepe:  username='pepe',  pass='123'");
         };
     }
 }
