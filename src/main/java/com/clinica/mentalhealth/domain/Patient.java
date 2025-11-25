@@ -7,5 +7,6 @@ import org.springframework.data.relational.core.mapping.Table;
 public record Patient(
         @Id Long id,
         String name,
-        String email
+        String email,
+        String dni
 ) {}

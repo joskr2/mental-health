@@ -3,18 +3,19 @@ package com.clinica.mentalhealth.service;
 import com.clinica.mentalhealth.domain.Appointment;
 import com.clinica.mentalhealth.repository.AppointmentRepository;
 import com.clinica.mentalhealth.security.UserPrincipal;
+import com.clinica.mentalhealth.web.exception.ConflictException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.ReactiveSecurityContextHolder;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import java.time.DayOfWeek;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.Objects;
+
+import static java.time.DayOfWeek.SUNDAY;
 
 @Service
 @RequiredArgsConstructor
@@ -25,126 +26,116 @@ public class AppointmentService {
     private static final LocalTime OPENING_TIME = LocalTime.of(8, 0);
     private static final LocalTime CLOSING_TIME = LocalTime.of(22, 0);
 
-    // =================================================================
-    // 1. MÉTODOS PÚBLICOS (Puntos de entrada)
-    // =================================================================
+    // Role constants to keep checks consistent
+    private static final String ROLE_ADMIN = "ROLE_ADMIN";
+    private static final String ROLE_PSYCHOLOGIST = "ROLE_PSYCHOLOGIST";
+    private static final String ROLE_PATIENT = "ROLE_PATIENT";
 
-    /**
-     * Entrada para API REST (Controllers).
-     * Se encarga de la seguridad (contexto) y delega la lógica.
-     */
-    @Transactional
-    public Mono<Appointment> createAppointment(Appointment appointment) {
+    // Helper to obtain current user reactively
+    private Mono<UserPrincipal> currentUser() {
         return ReactiveSecurityContextHolder.getContext()
                 .mapNotNull(ctx -> Objects.requireNonNull(ctx.getAuthentication()).getPrincipal())
-                .cast(UserPrincipal.class)
+                .cast(UserPrincipal.class);
+    }
+
+    // Remove @Transactional: use reactive transactions if needed via R2DBC TransactionalOperator
+    public Mono<Appointment> createAppointment(Appointment appointment) {
+        return currentUser()
                 .flatMap(user -> {
-                    // Validación de Seguridad: Propiedad de datos
-                    if ("ROLE_PATIENT".equals(user.role()) && !user.id().equals(appointment.patientId())) {
+                    if (ROLE_PATIENT.equals(user.role()) && !user.id().equals(appointment.patientId())) {
                         return Mono.error(new IllegalAccessException("Los pacientes solo pueden agendar sus propias citas."));
                     }
-                    // Delegamos al núcleo de negocio
                     return processAppointment(appointment);
                 });
     }
 
-    /**
-     * NUEVO: Entrada para IA (AiToolsConfig).
-     * Convierte datos crudos y delega la lógica.
-     */
-    @Transactional
+    // Make parsing reactive and avoid try/catch on reactive flows
     public Mono<Appointment> createFromAi(Long patientId, Long psychologistId, String dateString) {
-        try {
-            // 1. Conversión de datos (Adapter)
-            LocalDateTime start = LocalDateTime.parse(dateString);
-            LocalDateTime end = start.plusHours(1); // Duración estándar
-
-            // 2. Construcción del objeto (roomId=1 por defecto o lógica de asignación)
-            Appointment appt = new Appointment(null, start, end, patientId, psychologistId, 1L);
-
-            // 3. Delegamos al mismo núcleo de negocio (Reutilización total)
-            // Nota: Aquí asumimos que la IA (o el Prompt) ya validó quién es el usuario.
-            return processAppointment(appt);
-
-        } catch (Exception e) {
-            return Mono.error(new IllegalArgumentException("Error al procesar datos de la IA: " + e.getMessage()));
-        }
+        return Mono.fromCallable(() -> LocalDateTime.parse(dateString))
+                .map(start -> new Appointment(null, start, start.plusHours(1), patientId, psychologistId, 1L))
+                .flatMap(this::processAppointment)
+                .onErrorMap(e -> new IllegalArgumentException("Error al procesar datos de la IA: " + e.getMessage()));
     }
 
     public Flux<Appointment> getMyAppointments() {
-        return ReactiveSecurityContextHolder.getContext()
-                .mapNotNull(ctx -> Objects.requireNonNull(ctx.getAuthentication()).getPrincipal())
-                .cast(UserPrincipal.class)
+        return currentUser()
                 .flatMapMany(user -> {
-                    if ("ROLE_ADMIN".equals(user.role())) return appointmentRepository.findAll();
-                    if ("ROLE_PSYCHOLOGIST".equals(user.role())) return appointmentRepository.findByPsychologistId(user.id());
-                    if ("ROLE_PATIENT".equals(user.role())) return appointmentRepository.findByPatientId(user.id());
+                    if (ROLE_ADMIN.equals(user.role())) {
+                        return appointmentRepository.findAll();
+                    }
+                    if (ROLE_PSYCHOLOGIST.equals(user.role())) {
+                        return appointmentRepository.findByPsychologistId(user.id());
+                    }
+                    if (ROLE_PATIENT.equals(user.role())) {
+                        return appointmentRepository.findByPatientId(user.id());
+                    }
                     return Flux.empty();
                 });
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN', 'ROLE_PSYCHOLOGIST')")
+    // hasAnyRole expects role names without the ROLE_ prefix by default
+    @PreAuthorize("hasAnyRole('ADMIN','PSYCHOLOGIST')")
     public Flux<Appointment> checkRoomAvailability(Long roomId, LocalDateTime date) {
         LocalDateTime startOfDay = date.toLocalDate().atStartOfDay();
         LocalDateTime endOfDay = date.toLocalDate().atTime(23, 59, 59);
         return appointmentRepository.findRoomConflicts(roomId, startOfDay, endOfDay);
     }
 
-    // =================================================================
-    // 2. NÚCLEO DE NEGOCIO (Privado/Reutilizable)
-    // =================================================================
-
-    /**
-     * Contiene la lógica pura de validación y persistencia.
-     * Es agnóstico de si viene por REST o por IA.
-     */
     private Mono<Appointment> processAppointment(Appointment appointment) {
-        // 1. Validaciones Síncronas (Horarios)
-        try {
-            validateBusinessHours(appointment);
-        } catch (Exception e) {
-            return Mono.error(e);
-        }
-
-        // 2. Validaciones Asíncronas (Conflictos) y Guardado
-        return validatePsychologistAvailability(appointment)
+        return validateBusinessHours(appointment)
+                .then(validatePsychologistAvailability(appointment))
                 .then(validatePatientAvailability(appointment))
                 .then(validateRoomAvailability(appointment))
-                .then(Mono.just(appointment))
-                .flatMap(appointmentRepository::save);
+                .then(appointmentRepository.save(appointment));
     }
 
-    // =================================================================
-    // 3. VALIDACIONES (Helpers)
-    // =================================================================
+    // Reactive validation instead of throwing exceptions synchronously
+    private Mono<Void> validateBusinessHours(Appointment appointment) {
+        var start = appointment.startTime();
+        var end = appointment.endTime();
 
-    private void validateBusinessHours(Appointment appt) {
-        var start = appt.startTime();
-        var end = appt.endTime();
-
-        if (start.getDayOfWeek() == DayOfWeek.SUNDAY) {
-            throw new IllegalArgumentException("Cerrado los domingos.");
+        if (start == null || end == null) {
+            return Mono.error(new IllegalArgumentException("Horario de inicio/fin es requerido."));
         }
-        if (start.toLocalTime().isBefore(OPENING_TIME) || end.toLocalTime().isAfter(CLOSING_TIME)) {
-            throw new IllegalArgumentException("Fuera de horario (08:00 - 22:00).");
+        if (!end.isAfter(start)) {
+            return Mono.error(new IllegalArgumentException("La hora de fin debe ser después de la hora de inicio."));
         }
+        if (start.getDayOfWeek() == SUNDAY) {
+            return Mono.error(new IllegalArgumentException("Cerrado los domingos."));
+        }
+        var startTime = start.toLocalTime();
+        var endTime = end.toLocalTime();
+        if (startTime.isBefore(OPENING_TIME) || endTime.isAfter(CLOSING_TIME)) {
+            return Mono.error(new IllegalArgumentException("Fuera de horario (08:00 - 22:00)."));
+        }
+        return Mono.empty();
     }
 
-    private Mono<Void> validatePsychologistAvailability(Appointment appt) {
-        return appointmentRepository.findPsychologistConflicts(appt.psychologistId(), appt.startTime(), appt.endTime())
-                .hasElements()
-                .flatMap(has -> has.booleanValue() ? Mono.error(new IllegalStateException("Psicólogo ocupado.")) : Mono.empty());
+    private Mono<Void> failIfConflict(Flux<?> searchOperation, String errorMessage) {
+        return searchOperation.hasElements()
+                .flatMap(hasConflict -> Boolean.TRUE.equals(hasConflict)
+                        ? Mono.error(new ConflictException(errorMessage))
+                        : Mono.empty());
     }
 
-    private Mono<Void> validatePatientAvailability(Appointment appt) {
-        return appointmentRepository.findPatientConflicts(appt.patientId(), appt.startTime(), appt.endTime())
-                .hasElements()
-                .flatMap(has -> has.booleanValue() ? Mono.error(new IllegalStateException("Paciente ya tiene cita.")) : Mono.empty());
+    private Mono<Void> validatePsychologistAvailability(Appointment appointment) {
+        return failIfConflict(
+                appointmentRepository.findPsychologistConflicts(
+                        appointment.psychologistId(), appointment.startTime(), appointment.endTime()),
+                "Psicólogo ocupado.");
     }
 
-    private Mono<Void> validateRoomAvailability(Appointment appt) {
-        return appointmentRepository.findRoomConflicts(appt.roomId(), appt.startTime(), appt.endTime())
-                .hasElements()
-                .flatMap(has -> has.booleanValue() ? Mono.error(new IllegalStateException("Sala ocupada.")) : Mono.empty());
+    private Mono<Void> validatePatientAvailability(Appointment appointment) {
+        return failIfConflict(
+                appointmentRepository.findPatientConflicts(
+                        appointment.patientId(), appointment.startTime(), appointment.endTime()),
+                "Paciente ya tiene cita.");
+    }
+
+    private Mono<Void> validateRoomAvailability(Appointment appointment) {
+        return failIfConflict(
+                appointmentRepository.findRoomConflicts(
+                        appointment.roomId(), appointment.startTime(), appointment.endTime()),
+        "Sala ocupada.");
     }
 }

@@ -15,17 +15,18 @@ import java.util.function.Function;
 public class AiToolsConfig {
 
     @Bean
-    @Description("Buscar pacientes en la base de datos por nombre parcial.")
+    @Description("Buscar pacientes por Nombre o por DNI. Retorna la lista de coincidencias.")
     public Function<PatientSearchRequest, List<Patient>> searchPatientTool(PatientService patientService) {
-        return request -> patientService.searchByName(request.name())
+        // La IA pasará el nombre o el número en el campo "name"
+        return request -> patientService.searchPatient(request.name())
                 .collectList()
                 .block();
     }
 
     @Bean
-    @Description("Crear un nuevo paciente y su usuario de acceso.")
+    @Description("Crear un nuevo paciente. Requiere Nombre, Email y DNI (Documento de Identidad).")
     public Function<CreatePatientRequest, Patient> createPatientTool(PatientService patientService) {
-        return request -> patientService.createPatient(request.name(), request.email())
+        return request -> patientService.createPatient(request.name(), request.email(), request.dni())
                 .block();
     }
 

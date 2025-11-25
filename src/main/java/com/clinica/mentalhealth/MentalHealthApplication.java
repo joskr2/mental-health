@@ -11,6 +11,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.r2dbc.core.DatabaseClient;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import java.util.Objects;
 
 @Slf4j
 @SpringBootApplication
@@ -25,12 +26,6 @@ public class MentalHealthApplication {
         return new BCryptPasswordEncoder();
     }
 
-    // HE BORRADO EL BEAN 'r2dbcDialect'. Spring Boot lo configura solo.
-
-    /**
-     * SEMILLA DE DATOS MAESTROS
-     * Se ejecuta cada vez que arranca la aplicación.
-     */
     @Bean
     @org.springframework.context.annotation.Profile("!test")
     public CommandLineRunner seedData(
@@ -52,6 +47,7 @@ public class MentalHealthApplication {
             var admin = userRepo.save(new User(null, "admin", encoder.encode("123"), Role.ROLE_ADMIN)).block();
             var doc = userRepo.save(new User(null, "doc", encoder.encode("123"), Role.ROLE_PSYCHOLOGIST)).block();
             var pepe = userRepo.save(new User(null, "pepe", encoder.encode("123"), Role.ROLE_PATIENT)).block();
+            var grillo = userRepo.save(new User(null, "grillo", encoder.encode("123"), Role.ROLE_PATIENT)).block();
 
             log.info("👤 Usuarios creados: Admin(ID={}), Doc(ID={}), Pepe(ID={})", admin.id(), doc.id(), pepe.id());
 
@@ -60,17 +56,24 @@ public class MentalHealthApplication {
 
             // Insertar Psicólogo
             databaseClient.sql("INSERT INTO \"psychologists\" (id, name, specialty) VALUES (:id, :name, :spec)")
-                    .bind("id", java.util.Objects.requireNonNull(doc.id()))
+                    .bind("id", Objects.requireNonNull(doc.id()))
                     .bind("name", "Dr. Strange")
                     .bind("spec", "Misticismo")
                     .fetch().rowsUpdated().block();
 
             // Insertar Paciente
             databaseClient.sql("INSERT INTO \"patients\" (id, name, email) VALUES (:id, :name, :email)")
-                    .bind("id", java.util.Objects.requireNonNull(pepe.id()))
+                    .bind("id", Objects.requireNonNull(pepe.id()))
                     .bind("name", "Pepe Grillo")
                     .bind("email", "pepe@test.com")
                     .fetch().rowsUpdated().block();
+
+            databaseClient.sql("INSERT INTO \"patients\" (id, name, email, dni) VALUES (:id, :name, :email, :dni)")
+                    .bind("id", Objects.requireNonNull(grillo.id()))
+                    .bind("name", "Pepe Grillo")
+                    .bind("email", "pepe@test.com")
+                    .bind("dni", "12345678") // <--- DNI DE PRUEBA
+                    .fetch().rowsUpdated().block();        
 
             // Insertar Sala
             databaseClient.sql("INSERT INTO \"rooms\" (id, name) VALUES (1, 'Sala Suprema')")
