@@ -59,6 +59,9 @@ public class RoomController {
     }
 
     // DTOs internos
-    record CreateRoomRequest(String name) {}
-    record UpdateRoomRequest(String name) {}
+    record CreateRoomRequest(String name) {
+    }
+
+    record UpdateRoomRequest(String name) {
+    }
 }
