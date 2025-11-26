@@ -35,18 +35,15 @@ public class JwtAuthenticationFilter implements WebFilter {
         String token = authHeader.substring(7);
 
         try {
-            if (jwtService.validateToken(token)) {
-                Claims claims = jwtService.getAllClaims(token);
+            if (jwtService.validateAccessToken(token)) {
+                Claims claims = jwtService.getAccessClaims(token);
 
-                // 1. Extraemos los datos reales
                 String username = claims.getSubject();
                 String role = claims.get("role", String.class);
                 Long userId = claims.get("userId", Long.class);
 
-                // 2. Creamos nuestro Principal personalizado
                 UserPrincipal principal = new UserPrincipal(userId, username, role);
 
-                // 3. Definimos la autoridad (Spring espera ROLE_...)
                 var authorities = List.of(new SimpleGrantedAuthority(role));
 
                 var authentication = new UsernamePasswordAuthenticationToken(principal, null, authorities);

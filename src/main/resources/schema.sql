@@ -34,3 +34,8 @@ CREATE TABLE IF NOT EXISTS "appointments" (
     FOREIGN KEY (psychologist_id) REFERENCES "psychologists"(id),
     FOREIGN KEY (room_id) REFERENCES "rooms"(id)
 );
+
+-- Performance indexes for conflict detection queries
+CREATE INDEX IF NOT EXISTS idx_appointments_psychologist_time ON "appointments" (psychologist_id, start_time, end_time);
+CREATE INDEX IF NOT EXISTS idx_appointments_patient_time ON "appointments" (patient_id, start_time, end_time);
+CREATE INDEX IF NOT EXISTS idx_appointments_room_time ON "appointments" (room_id, start_time, end_time);

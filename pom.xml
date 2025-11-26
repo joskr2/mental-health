@@ -102,6 +102,23 @@
             <artifactId>spring-ai-openai-spring-boot-starter</artifactId>
         </dependency>
 
+        <!-- OpenAPI for WebFlux -->
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webflux-ui</artifactId>
+            <version>2.6.0</version>
+        </dependency>
+        <!-- Spring Cache + Caffeine -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-cache</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.github.ben-manes.caffeine</groupId>
+            <artifactId>caffeine</artifactId>
+            <version>3.1.8</version>
+        </dependency>
+
         <!-- TESTING -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
