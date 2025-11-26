@@ -4,6 +4,7 @@ import com.clinica.mentalhealth.repository.UserRepository;
 import com.clinica.mentalhealth.security.JwtService;
 import com.clinica.mentalhealth.web.dto.LoginRequest;
 import com.clinica.mentalhealth.web.dto.LoginResponse;
+import com.clinica.mentalhealth.web.dto.RefreshTokenRequest;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -45,7 +46,8 @@ public class AuthController {
     @Operation(summary = "Refrescar tokens", description = "Usa el refresh token para obtener un nuevo par de tokens (rotación)")
     @ApiResponse(responseCode = "200", description = "Tokens refrescados exitosamente")
     @ApiResponse(responseCode = "401", description = "Refresh token inválido o expirado")
-    public Mono<ResponseEntity<LoginResponse>> refresh(@RequestBody String refreshToken) {
+    public Mono<ResponseEntity<LoginResponse>> refresh(@RequestBody RefreshTokenRequest request) {
+        String refreshToken = request.refreshToken();
         if (!jwtService.validateRefreshToken(refreshToken)) {
             return Mono.just(ResponseEntity.status(HttpStatus.UNAUTHORIZED).build());
         }

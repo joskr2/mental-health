@@ -1,6 +1,9 @@
 package com.clinica.mentalhealth.web;
 
 import com.clinica.mentalhealth.service.ClinicalAgentService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -11,6 +14,8 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/agent")
 @RequiredArgsConstructor
+@Tag(name = "Agente IA", description = "Chat con el asistente clínico de inteligencia artificial")
+@SecurityRequirement(name = "Bearer Authentication")
 public class AgentController {
 
     private static final int MAX_MESSAGE_LENGTH = 1000;
@@ -19,6 +24,7 @@ public class AgentController {
 
     @PostMapping("/chat")
     @PreAuthorize("hasAnyRole('ADMIN', 'PSYCHOLOGIST')")
+    @Operation(summary = "Chat con IA", description = "Envía una consulta al agente clínico de IA y recibe una respuesta")
     public Mono<Map<String, String>> chat(@RequestBody Map<String, String> body) {
         String text = body.get("text");
 

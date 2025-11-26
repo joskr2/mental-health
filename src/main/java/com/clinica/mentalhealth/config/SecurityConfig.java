@@ -22,8 +22,20 @@ public class SecurityConfig {
                 .httpBasic(ServerHttpSecurity.HttpBasicSpec::disable)
                 .formLogin(ServerHttpSecurity.FormLoginSpec::disable)
                 .authorizeExchange(auth -> auth
+                        // Rutas de autenticacion (publicas)
                         .pathMatchers(HttpMethod.POST, "/api/auth/login", "/api/auth/refresh").permitAll()
-                        .pathMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
+
+                        // Swagger UI y OpenAPI (publicas para desarrollo)
+                        .pathMatchers("/v3/api-docs/**").permitAll()
+                        .pathMatchers("/swagger-ui/**").permitAll()
+                        .pathMatchers("/swagger-ui.html").permitAll()
+                        .pathMatchers("/webjars/**").permitAll()
+
+                        // Actuator endpoints (publicas para monitoreo)
+                        .pathMatchers("/actuator/health").permitAll()
+                        .pathMatchers("/actuator/**").permitAll()
+
+                        // Todas las demas rutas requieren autenticacion
                         .anyExchange().authenticated())
                 .addFilterBefore(jwtFilter, SecurityWebFiltersOrder.AUTHENTICATION)
                 .build();
