@@ -38,12 +38,14 @@ public class AppointmentService {
                 .cast(UserPrincipal.class);
     }
 
-    // Remove @Transactional: use reactive transactions if needed via R2DBC TransactionalOperator
+    // Remove @Transactional: use reactive transactions if needed via R2DBC
+    // TransactionalOperator
     public Mono<Appointment> createAppointment(Appointment appointment) {
         return currentUser()
                 .flatMap(user -> {
                     if (ROLE_PATIENT.equals(user.role()) && !user.id().equals(appointment.patientId())) {
-                        return Mono.error(new IllegalAccessException("Los pacientes solo pueden agendar sus propias citas."));
+                        return Mono.error(
+                                new IllegalAccessException("Los pacientes solo pueden agendar sus propias citas."));
                     }
                     return processAppointment(appointment);
                 });
@@ -136,6 +138,6 @@ public class AppointmentService {
         return failIfConflict(
                 appointmentRepository.findRoomConflicts(
                         appointment.roomId(), appointment.startTime(), appointment.endTime()),
-        "Sala ocupada.");
+                "Sala ocupada.");
     }
 }

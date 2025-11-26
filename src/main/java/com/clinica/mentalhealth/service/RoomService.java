@@ -42,4 +42,3 @@ public class RoomService {
         return roomRepository.deleteById(Objects.requireNonNull(id));
     }
 }
-

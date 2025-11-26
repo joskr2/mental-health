@@ -37,7 +37,8 @@ public class AuthController {
                     String refresh = jwtService.generateRefreshToken(user);
                     return ResponseEntity.ok(new LoginResponse(access, refresh));
                 })
-                .defaultIfEmpty(ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()); // Si no existe o pass incorrecto
+                .defaultIfEmpty(ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()); // Si no existe o pass
+                                                                                         // incorrecto
     }
 
     @PostMapping("/refresh")
