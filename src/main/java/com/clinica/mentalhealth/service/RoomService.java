@@ -12,11 +12,14 @@ import org.springframework.web.server.ResponseStatusException;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.util.Objects;
+
 @Service
 @RequiredArgsConstructor
 public class RoomService {
 
     private static final String ROOM_NOT_FOUND = "Sala no encontrada";
+    private static final String ROOM_ID_REQUIRED = "ID de sala requerido";
 
     private final RoomRepository roomRepository;
 
@@ -27,7 +30,7 @@ public class RoomService {
 
     @Cacheable(value = "rooms", key = "#id")
     public Mono<Room> findById(Long id) {
-        return roomRepository.findById(id)
+        return roomRepository.findById(Objects.requireNonNull(id, ROOM_ID_REQUIRED))
                 .switchIfEmpty(Mono.error(new ResponseStatusException(HttpStatus.NOT_FOUND, ROOM_NOT_FOUND)));
     }
 
@@ -40,7 +43,7 @@ public class RoomService {
     @Transactional
     @CacheEvict(value = "rooms", allEntries = true)
     public Mono<Room> updateRoom(Long id, String name) {
-        return roomRepository.findById(id)
+        return roomRepository.findById(Objects.requireNonNull(id, ROOM_ID_REQUIRED))
                 .switchIfEmpty(Mono.error(new ResponseStatusException(HttpStatus.NOT_FOUND, ROOM_NOT_FOUND)))
                 .flatMap(existing -> roomRepository.save(new Room(existing.id(), name)));
     }
@@ -48,7 +51,7 @@ public class RoomService {
     @Transactional
     @CacheEvict(value = "rooms", allEntries = true)
     public Mono<Void> deleteRoom(Long id) {
-        return roomRepository.findById(id)
+        return roomRepository.findById(Objects.requireNonNull(id, ROOM_ID_REQUIRED))
                 .switchIfEmpty(Mono.error(new ResponseStatusException(HttpStatus.NOT_FOUND, ROOM_NOT_FOUND)))
                 .flatMap(roomRepository::delete);
     }

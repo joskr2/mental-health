@@ -17,6 +17,8 @@ import java.util.function.Function;
 @Configuration
 public class AiToolsConfig {
 
+    private static final String ERROR_PREFIX = "ERROR: ";
+
     // --- HERRAMIENTAS DE PACIENTES ---
 
     @Bean
@@ -35,7 +37,7 @@ public class AiToolsConfig {
                 ).block();
                 return "ÉXITO: Paciente creado con ID " + p.id();
             } catch (Exception e) {
-                return "ERROR: " + e.getMessage();
+                return ERROR_PREFIX + e.getMessage();
             }
         };
     }
@@ -77,7 +79,7 @@ public class AiToolsConfig {
                 ).block();
                 return "ÉXITO: Psicólogo creado con ID " + doc.id();
             } catch (Exception e) {
-                return "ERROR: " + e.getMessage();
+                return ERROR_PREFIX + e.getMessage();
             }
         };
     }
@@ -90,7 +92,7 @@ public class AiToolsConfig {
                 var room = service.createRoom(request.name()).block();
                 return "ÉXITO: Sala creada con ID " + room.id();
             } catch (Exception e) {
-                return "ERROR: " + e.getMessage();
+                return ERROR_PREFIX + e.getMessage();
             }
         };
     }

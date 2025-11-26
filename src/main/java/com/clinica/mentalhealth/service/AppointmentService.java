@@ -147,19 +147,20 @@ public class AppointmentService {
      * - Psicólogo: solo puede cancelar sus propias citas
      */
     public Mono<Void> cancelAppointment(Long appointmentId) {
+        Long safeId = java.util.Objects.requireNonNull(appointmentId, "ID de cita requerido");
         return currentUser()
-                .flatMap(user -> appointmentRepository.findById(appointmentId)
+                .flatMap(user -> appointmentRepository.findById(safeId)
                         .switchIfEmpty(
-                                Mono.error(new IllegalArgumentException("Cita no encontrada con ID: " + appointmentId)))
+                                Mono.error(new IllegalArgumentException("Cita no encontrada con ID: " + safeId)))
                         .flatMap(appointment -> {
                             // Admin puede cancelar cualquier cita
                             if (ROLE_ADMIN.equals(user.role())) {
-                                return appointmentRepository.deleteById(appointmentId);
+                                return appointmentRepository.deleteById(safeId);
                             }
                             // Psicólogo solo puede cancelar sus propias citas
                             if (ROLE_PSYCHOLOGIST.equals(user.role())) {
                                 if (user.id().equals(appointment.psychologistId())) {
-                                    return appointmentRepository.deleteById(appointmentId);
+                                    return appointmentRepository.deleteById(safeId);
                                 }
                                 return Mono
                                         .error(new IllegalAccessException("Solo puedes cancelar tus propias citas."));
