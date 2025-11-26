@@ -47,7 +47,7 @@ public class AppointmentController {
     }
 
     @GetMapping("/rooms/{roomId}/check")
-    @PreAuthorize("hasAnyRole('ADMIN', 'ROLE_PSYCHOLOGIST')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'PSYCHOLOGIST')")
     @Operation(summary = "Verificar disponibilidad de sala", description = "Permite ver si una sala está ocupada en una fecha específica. Solo para Admin y Psicólogos.")
     @ApiResponse(responseCode = "200", description = "Lista de conflictos obtenida")
     @ApiResponse(responseCode = "401", description = "No autenticado")
@@ -56,5 +56,18 @@ public class AppointmentController {
             @Parameter(description = "ID de la sala a verificar") @PathVariable Long roomId,
             @Parameter(description = "Fecha y hora para verificar disponibilidad (formato ISO)") @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime date) {
         return appointmentService.checkRoomAvailability(roomId, date);
+    }
+
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @PreAuthorize("hasAnyRole('ADMIN', 'PSYCHOLOGIST')")
+    @Operation(summary = "Cancelar cita", description = "Cancela una cita existente. Admin puede cancelar cualquier cita, Psicólogo solo sus propias citas.")
+    @ApiResponse(responseCode = "204", description = "Cita cancelada exitosamente")
+    @ApiResponse(responseCode = "401", description = "No autenticado")
+    @ApiResponse(responseCode = "403", description = "Sin permisos para cancelar esta cita")
+    @ApiResponse(responseCode = "404", description = "Cita no encontrada")
+    public Mono<Void> cancel(
+            @Parameter(description = "ID de la cita a cancelar") @PathVariable Long id) {
+        return appointmentService.cancelAppointment(id);
     }
 }

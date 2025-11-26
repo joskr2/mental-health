@@ -140,4 +140,31 @@ public class AppointmentService {
                         appointment.roomId(), appointment.startTime(), appointment.endTime()),
                 "Sala ocupada.");
     }
+
+    /**
+     * Cancela una cita.
+     * - Admin: puede cancelar cualquier cita
+     * - Psicólogo: solo puede cancelar sus propias citas
+     */
+    public Mono<Void> cancelAppointment(Long appointmentId) {
+        return currentUser()
+                .flatMap(user -> appointmentRepository.findById(appointmentId)
+                        .switchIfEmpty(
+                                Mono.error(new IllegalArgumentException("Cita no encontrada con ID: " + appointmentId)))
+                        .flatMap(appointment -> {
+                            // Admin puede cancelar cualquier cita
+                            if (ROLE_ADMIN.equals(user.role())) {
+                                return appointmentRepository.deleteById(appointmentId);
+                            }
+                            // Psicólogo solo puede cancelar sus propias citas
+                            if (ROLE_PSYCHOLOGIST.equals(user.role())) {
+                                if (user.id().equals(appointment.psychologistId())) {
+                                    return appointmentRepository.deleteById(appointmentId);
+                                }
+                                return Mono
+                                        .error(new IllegalAccessException("Solo puedes cancelar tus propias citas."));
+                            }
+                            return Mono.error(new IllegalAccessException("No tienes permisos para cancelar citas."));
+                        }));
+    }
 }
