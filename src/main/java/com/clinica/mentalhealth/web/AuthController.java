@@ -6,7 +6,6 @@ import com.clinica.mentalhealth.web.dto.LoginRequest;
 import com.clinica.mentalhealth.web.dto.LoginResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -27,10 +26,8 @@ public class AuthController {
 
     @PostMapping("/login")
     @Operation(summary = "Iniciar sesión", description = "Autentica usuario y devuelve access token (30 min) y refresh token (14 días)")
-    @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "Login exitoso, tokens generados"),
-        @ApiResponse(responseCode = "401", description = "Credenciales inválidas")
-    })
+    @ApiResponse(responseCode = "200", description = "Login exitoso, tokens generados")
+    @ApiResponse(responseCode = "401", description = "Credenciales inválidas")
     public Mono<ResponseEntity<LoginResponse>> login(@RequestBody LoginRequest request) {
         return userRepository.findByUsername(request.username())
                 .filter(user -> passwordEncoder.matches(request.password(), user.getPassword())) // Verificar password
@@ -45,16 +42,14 @@ public class AuthController {
 
     @PostMapping("/refresh")
     @Operation(summary = "Refrescar tokens", description = "Usa el refresh token para obtener un nuevo par de tokens (rotación)")
-    @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "Tokens refrescados exitosamente"),
-        @ApiResponse(responseCode = "401", description = "Refresh token inválido o expirado")
-    })
+    @ApiResponse(responseCode = "200", description = "Tokens refrescados exitosamente")
+    @ApiResponse(responseCode = "401", description = "Refresh token inválido o expirado")
     public Mono<ResponseEntity<LoginResponse>> refresh(@RequestBody String refreshToken) {
         if (!jwtService.validateRefreshToken(refreshToken)) {
             return Mono.just(ResponseEntity.status(HttpStatus.UNAUTHORIZED).build());
         }
         var claims = jwtService.getRefreshClaims(refreshToken);
-        return userRepository.findById(Long.valueOf(claims.get("userId").toString()))
+        return userRepository.findById(java.util.Objects.requireNonNull(Long.valueOf(claims.get("userId").toString())))
                 .map(user -> {
                     String newAccess = jwtService.generateAccessToken(user);
                     String newRefresh = jwtService.rotateRefreshToken(refreshToken);

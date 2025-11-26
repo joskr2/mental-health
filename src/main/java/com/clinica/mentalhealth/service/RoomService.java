@@ -9,6 +9,8 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.util.Objects;
+
 @Service
 @RequiredArgsConstructor
 public class RoomService {
@@ -22,22 +24,22 @@ public class RoomService {
 
     @Cacheable(value = "rooms", key = "#id")
     public Mono<Room> getRoomById(Long id) {
-        return roomRepository.findById(id);
+        return roomRepository.findById(Objects.requireNonNull(id));
     }
 
     @CacheEvict(value = "rooms", allEntries = true)
     public Mono<Room> createRoom(Room room) {
-        return roomRepository.save(room);
+        return roomRepository.save(Objects.requireNonNull(room));
     }
 
     @CacheEvict(value = "rooms", allEntries = true)
     public Mono<Room> updateRoom(Room room) {
-        return roomRepository.save(room);
+        return roomRepository.save(Objects.requireNonNull(room));
     }
 
     @CacheEvict(value = "rooms", allEntries = true)
     public Mono<Void> deleteRoom(Long id) {
-        return roomRepository.deleteById(id);
+        return roomRepository.deleteById(Objects.requireNonNull(id));
     }
 }
 

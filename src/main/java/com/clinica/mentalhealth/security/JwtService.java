@@ -3,17 +3,19 @@ package com.clinica.mentalhealth.security;
 import com.clinica.mentalhealth.domain.User;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.security.Keys;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
-import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Date;
 import java.util.UUID;
 
 @Service
 public class JwtService {
+
+    // Constants to avoid duplicated literals
+    private static final String CLAIM_USER_ID = "userId";
+    private static final String CLAIM_TYPE_REFRESH = "refresh";
 
     // Separate keys for access and refresh; in real use, load from configuration
     private final SecretKey accessKey = Jwts.SIG.HS256.key().build();
@@ -33,7 +35,7 @@ public class JwtService {
         return Jwts.builder()
                 .subject(user.getUsername())
                 .claim("role", user.role())
-                .claim("userId", user.id())
+                .claim(CLAIM_USER_ID, user.id())
                 .issuedAt(new Date(now))
                 .expiration(new Date(now + accessTtl.toMillis()))
                 .signWith(accessKey)
@@ -44,8 +46,8 @@ public class JwtService {
         long now = System.currentTimeMillis();
         return Jwts.builder()
                 .subject(user.getUsername())
-                .claim("type", "refresh")
-                .claim("userId", user.id())
+                .claim("type", CLAIM_TYPE_REFRESH)
+                .claim(CLAIM_USER_ID, user.id())
                 .claim("jti", UUID.randomUUID().toString())
                 .issuedAt(new Date(now))
                 .expiration(new Date(now + refreshTtl.toMillis()))
@@ -65,7 +67,7 @@ public class JwtService {
     public boolean validateRefreshToken(String token) {
         try {
             Claims claims = parseClaims(token, refreshKey);
-            return "refresh".equals(claims.get("type"));
+            return CLAIM_TYPE_REFRESH.equals(claims.get("type"));
         } catch (Exception e) {
             return false;
         }
@@ -84,8 +86,8 @@ public class JwtService {
         long now = System.currentTimeMillis();
         return Jwts.builder()
                 .subject(claims.getSubject())
-                .claim("type", "refresh")
-                .claim("userId", claims.get("userId"))
+                .claim("type", CLAIM_TYPE_REFRESH)
+                .claim(CLAIM_USER_ID, claims.get(CLAIM_USER_ID))
                 .claim("jti", UUID.randomUUID().toString())
                 .issuedAt(new Date(now))
                 .expiration(new Date(now + refreshTtl.toMillis()))

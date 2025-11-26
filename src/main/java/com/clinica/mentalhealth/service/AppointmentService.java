@@ -86,7 +86,7 @@ public class AppointmentService {
                 .then(validatePsychologistAvailability(appointment))
                 .then(validatePatientAvailability(appointment))
                 .then(validateRoomAvailability(appointment))
-                .then(appointmentRepository.save(appointment));
+                .then(appointmentRepository.save(java.util.Objects.requireNonNull(appointment)));
     }
 
     // Reactive validation instead of throwing exceptions synchronously
