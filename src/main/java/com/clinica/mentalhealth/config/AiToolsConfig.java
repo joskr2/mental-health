@@ -33,8 +33,7 @@ public class AiToolsConfig {
         return request -> {
             try {
                 Patient p = service.createPatient(
-                        request.name(), request.email(), request.phone(), request.dni()
-                ).block();
+                        request.name(), request.email(), request.phone(), request.dni()).block();
                 return "ÉXITO: Paciente creado con ID " + p.id();
             } catch (Exception e) {
                 return ERROR_PREFIX + e.getMessage();
@@ -52,8 +51,7 @@ public class AiToolsConfig {
                 var cita = service.createFromAi(
                         request.patientId(),
                         request.psychologistId(),
-                        request.startTime()
-                ).block();
+                        request.startTime()).block();
                 return "ÉXITO: Cita agendada con ID " + cita.id();
             } catch (Exception e) {
                 return "ERROR AL AGENDAR: " + e.getMessage();
@@ -75,8 +73,7 @@ public class AiToolsConfig {
                         request.phone(),
                         request.dni(),
                         request.username(),
-                        request.password()
-                ).block();
+                        request.password()).block();
                 return "ÉXITO: Psicólogo creado con ID " + doc.id();
             } catch (Exception e) {
                 return ERROR_PREFIX + e.getMessage();
