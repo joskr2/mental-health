@@ -2,8 +2,10 @@ package com.clinica.mentalhealth.config;
 
 import com.clinica.mentalhealth.ai.tools.*;
 import com.clinica.mentalhealth.domain.Patient;
+import com.clinica.mentalhealth.domain.Room;
 import com.clinica.mentalhealth.service.AppointmentService;
 import com.clinica.mentalhealth.service.PatientService;
+import com.clinica.mentalhealth.service.RoomService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Description;
@@ -17,7 +19,6 @@ public class AiToolsConfig {
     @Bean
     @Description("Buscar pacientes por Nombre o por DNI. Retorna la lista de coincidencias.")
     public Function<PatientSearchRequest, List<Patient>> searchPatientTool(PatientService patientService) {
-        // La IA pasará el nombre o el número en el campo "name"
         return request -> patientService.searchPatient(request.name())
                 .collectList()
                 .block();
@@ -45,5 +46,11 @@ public class AiToolsConfig {
                 return "ERROR AL AGENDAR: " + e.getMessage();
             }
         };
+    }
+
+    @Bean
+    @Description("Crear una nueva Sala/Consultorio. Requiere el nombre de la sala.")
+    public Function<CreateRoomRequest, Room> createRoomTool(RoomService roomService) {
+        return request -> roomService.createRoom(request.name()).block();
     }
 }

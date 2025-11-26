@@ -7,6 +7,8 @@ import com.clinica.mentalhealth.repository.PsychologistRepository;
 import com.clinica.mentalhealth.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.HttpStatus;
 import org.springframework.lang.NonNull;
 import org.springframework.r2dbc.core.DatabaseClient;
@@ -33,11 +35,13 @@ public class PsychologistService {
 
     // --- LECTURA ---
 
+    @Cacheable(value = "psychologists", key = "'all'")
     public Flux<Psychologist> findAll() {
         log.debug("Buscando todos los psicólogos");
         return psychologistRepository.findAll();
     }
 
+    @Cacheable(value = "psychologists", key = "#id")
     public Mono<Psychologist> findById(@NonNull Long id) {
         log.debug("Buscando psicólogo con ID: {}", id);
         return psychologistRepository.findById(id)
@@ -47,6 +51,7 @@ public class PsychologistService {
 
     // --- CREACIÓN (Transaccional: User + Psychologist) ---
     @Transactional
+    @CacheEvict(value = "psychologists", allEntries = true)
     public Mono<Psychologist> createPsychologist(String name, String specialty, String email, String phone,
             String dni, String username, String password) {
         log.info("Creando psicólogo: name={}, specialty={}, email={}, dni={}, username={}",
@@ -77,6 +82,7 @@ public class PsychologistService {
 
     // --- ACTUALIZACIÓN ---
     @Transactional
+    @CacheEvict(value = "psychologists", allEntries = true)
     public Mono<Psychologist> updatePsychologist(@NonNull Long id, String name, String specialty,
             String email, String phone, String dni) {
         log.info("Actualizando psicólogo con ID: {}", id);
@@ -102,6 +108,7 @@ public class PsychologistService {
 
     // --- ELIMINACIÓN (Transaccional: Psychologist + User) ---
     @Transactional
+    @CacheEvict(value = "psychologists", allEntries = true)
     public Mono<Void> deletePsychologist(@NonNull Long id) {
         log.info("Eliminando psicólogo con ID: {}", id);
         return psychologistRepository.findById(id)
