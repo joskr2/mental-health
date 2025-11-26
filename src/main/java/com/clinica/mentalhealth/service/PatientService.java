@@ -65,31 +65,32 @@ public class PatientService {
     }
 
     @Transactional
-    public Mono<Patient> createPatient(String name, String email, String dni) {
-        log.info("Creando paciente: name={}, email={}, dni={}", name, email, dni);
+    public Mono<Patient> createPatient(String name, String email, String phone, String dni) {
+        log.info("Creando paciente: name={}, email={}, phone={}, dni={}", name, email, phone, dni);
         return patientRepository.findByDni(dni)
                 .flatMap(existing -> Mono
                         .<Patient>error(new IllegalArgumentException("Ya existe un paciente con DNI " + dni)))
                 .switchIfEmpty(
                         userRepository.save(new User(null, email, passwordEncoder.encode("123"), Role.ROLE_PATIENT))
                                 .flatMap(savedUser -> {
-                                    String sql = "INSERT INTO \"patients\" (id, name, email, dni) VALUES (:id, :name, :email, :dni)";
+                                    String sql = "INSERT INTO \"patients\" (id, name, email, phone, dni) VALUES (:id, :name, :email, :phone, :dni)";
 
                                     return databaseClient.sql(sql)
                                             .bind("id", Objects.requireNonNull(savedUser.id()))
                                             .bind("name", Objects.requireNonNull(name))
                                             .bind(BIND_EMAIL, Objects.requireNonNull(email))
+                                            .bind("phone", Objects.requireNonNull(phone))
                                             .bind("dni", Objects.requireNonNull(dni))
                                             .fetch()
                                             .rowsUpdated()
                                             .doOnSuccess(rows -> log.info("Paciente creado exitosamente con ID: {}",
                                                     savedUser.id()))
-                                            .thenReturn(new Patient(savedUser.id(), name, email, dni));
+                                            .thenReturn(new Patient(savedUser.id(), name, email, phone, dni));
                                 }));
     }
 
     @Transactional
-    public Mono<Patient> updatePatient(@NonNull Long id, String name, String email, String dni) {
+    public Mono<Patient> updatePatient(@NonNull Long id, String name, String email, String phone, String dni) {
         log.info("Actualizando paciente con ID: {}", id);
         return patientRepository.findById(id)
                 .switchIfEmpty(Mono.error(new ResponseStatusException(
@@ -100,18 +101,19 @@ public class PatientService {
                         return patientRepository.findByDni(dni)
                                 .flatMap(other -> Mono.<Patient>error(
                                         new IllegalArgumentException("Ya existe otro paciente con DNI " + dni)))
-                                .switchIfEmpty(performUpdate(id, name, email, dni));
+                                .switchIfEmpty(performUpdate(id, name, email, phone, dni));
                     }
-                    return performUpdate(id, name, email, dni);
+                    return performUpdate(id, name, email, phone, dni);
                 });
     }
 
-    private Mono<Patient> performUpdate(@NonNull Long id, String name, String email, String dni) {
-        String sql = "UPDATE \"patients\" SET name = :name, email = :email, dni = :dni WHERE id = :id";
+    private Mono<Patient> performUpdate(@NonNull Long id, String name, String email, String phone, String dni) {
+        String sql = "UPDATE \"patients\" SET name = :name, email = :email, phone = :phone, dni = :dni WHERE id = :id";
         return databaseClient.sql(sql)
                 .bind("id", id)
                 .bind("name", Objects.requireNonNull(name))
                 .bind(BIND_EMAIL, Objects.requireNonNull(email))
+                .bind("phone", Objects.requireNonNull(phone))
                 .bind("dni", Objects.requireNonNull(dni))
                 .fetch()
                 .rowsUpdated()
@@ -125,7 +127,7 @@ public class PatientService {
                             .rowsUpdated();
                 })
                 .doOnSuccess(rows -> log.info("Paciente actualizado exitosamente con ID: {}", id))
-                .thenReturn(new Patient(id, name, email, dni));
+                .thenReturn(new Patient(id, name, email, phone, dni));
     }
 
     @Transactional

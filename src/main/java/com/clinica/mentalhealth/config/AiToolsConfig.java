@@ -24,9 +24,9 @@ public class AiToolsConfig {
     }
 
     @Bean
-    @Description("Crear un nuevo paciente. Requiere Nombre, Email y DNI (Documento de Identidad).")
+    @Description("Crear un nuevo paciente. Requiere Nombre, Email, Teléfono y DNI (Documento de Identidad).")
     public Function<CreatePatientRequest, Patient> createPatientTool(PatientService patientService) {
-        return request -> patientService.createPatient(request.name(), request.email(), request.dni())
+        return request -> patientService.createPatient(request.name(), request.email(), request.phone(), request.dni())
                 .block();
     }
 
@@ -38,8 +38,7 @@ public class AiToolsConfig {
                 var cita = appointmentService.createFromAi(
                         request.patientId(),
                         request.psychologistId(),
-                        request.startTime()
-                ).block();
+                        request.startTime()).block();
 
                 return "ÉXITO: Cita creada correctamente con ID " + cita.id();
             } catch (Exception e) {

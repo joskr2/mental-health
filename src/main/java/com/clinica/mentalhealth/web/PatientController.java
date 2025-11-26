@@ -61,7 +61,7 @@ public class PatientController {
   @ApiResponse(responseCode = "400", description = "Datos inválidos o DNI duplicado")
   @ApiResponse(responseCode = "403", description = "Acceso denegado")
   public Mono<Patient> createPatient(@RequestBody CreatePatientRequest request) {
-    return patientService.createPatient(request.name(), request.email(), request.dni());
+    return patientService.createPatient(request.name(), request.email(), request.phone(), request.dni());
   }
 
   @PutMapping("/{id}")
@@ -74,7 +74,7 @@ public class PatientController {
   public Mono<Patient> updatePatient(
       @Parameter(description = "ID del paciente") @PathVariable @NonNull Long id,
       @RequestBody UpdatePatientRequest request) {
-    return patientService.updatePatient(id, request.name(), request.email(), request.dni());
+    return patientService.updatePatient(id, request.name(), request.email(), request.phone(), request.dni());
   }
 
   @DeleteMapping("/{id}")
@@ -93,12 +93,14 @@ public class PatientController {
   public record CreatePatientRequest(
       @Schema(description = "Nombre completo del paciente", example = "Juan Pérez") String name,
       @Schema(description = "Correo electrónico", example = "juan@email.com") String email,
+      @Schema(description = "Teléfono de contacto", example = "+51999888777") String phone,
       @Schema(description = "DNI del paciente", example = "12345678") String dni) {
   }
 
   public record UpdatePatientRequest(
       @Schema(description = "Nombre completo del paciente", example = "Juan Pérez García") String name,
       @Schema(description = "Correo electrónico", example = "juan.perez@email.com") String email,
+      @Schema(description = "Teléfono de contacto", example = "+51999888777") String phone,
       @Schema(description = "DNI del paciente", example = "12345678") String dni) {
   }
 }

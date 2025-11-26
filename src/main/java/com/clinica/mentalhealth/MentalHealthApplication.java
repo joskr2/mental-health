@@ -19,6 +19,9 @@ import java.util.Objects;
 @EnableCaching
 public class MentalHealthApplication {
 
+    private static final String BIND_EMAIL = "email";
+    private static final String BIND_PHONE = "phone";
+
     public static void main(String[] args) {
         SpringApplication.run(MentalHealthApplication.class, args);
     }
@@ -57,25 +60,32 @@ public class MentalHealthApplication {
             // Usuario
 
             // Insertar Psicólogo
-            databaseClient.sql("INSERT INTO \"psychologists\" (id, name, specialty) VALUES (:id, :name, :spec)")
+            databaseClient
+                    .sql("INSERT INTO \"psychologists\" (id, name, specialty, email, phone, dni) VALUES (:id, :name, :spec, :email, :phone, :dni)")
                     .bind("id", Objects.requireNonNull(doc.id()))
                     .bind("name", "Dr. Strange")
                     .bind("spec", "Misticismo")
+                    .bind(BIND_EMAIL, "strange@clinic.com")
+                    .bind(BIND_PHONE, "+51999111222")
+                    .bind("dni", "99887766")
                     .fetch().rowsUpdated().block();
 
             // Insertar Paciente
-            databaseClient.sql("INSERT INTO \"patients\" (id, name, email) VALUES (:id, :name, :email)")
+            databaseClient.sql("INSERT INTO \"patients\" (id, name, email, phone) VALUES (:id, :name, :email, :phone)")
                     .bind("id", Objects.requireNonNull(pepe.id()))
                     .bind("name", "Pepe Grillo")
-                    .bind("email", "pepe@test.com")
+                    .bind(BIND_EMAIL, "pepe@test.com")
+                    .bind(BIND_PHONE, "+51999333444")
                     .fetch().rowsUpdated().block();
 
-            databaseClient.sql("INSERT INTO \"patients\" (id, name, email, dni) VALUES (:id, :name, :email, :dni)")
+            databaseClient.sql(
+                    "INSERT INTO \"patients\" (id, name, email, phone, dni) VALUES (:id, :name, :email, :phone, :dni)")
                     .bind("id", Objects.requireNonNull(grillo.id()))
-                    .bind("name", "Pepe Grillo")
-                    .bind("email", "pepe@test.com")
-                    .bind("dni", "12345678") // <--- DNI DE PRUEBA
-                    .fetch().rowsUpdated().block();        
+                    .bind("name", "Grillo Pepito")
+                    .bind(BIND_EMAIL, "grillo@test.com")
+                    .bind(BIND_PHONE, "+51999555666")
+                    .bind("dni", "12345678")
+                    .fetch().rowsUpdated().block();
 
             // Insertar Sala
             databaseClient.sql("INSERT INTO \"rooms\" (id, name) VALUES (1, 'Sala Suprema')")
