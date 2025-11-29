@@ -7,6 +7,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.lang.NonNull;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
@@ -31,7 +32,7 @@ public class RoomController {
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN', 'PSYCHOLOGIST')")
     @Operation(summary = "Obtener sala por ID", description = "Busca una sala específica por su identificador")
-    public Mono<Room> getById(@PathVariable Long id) {
+    public Mono<Room> getById(@PathVariable @NonNull Long id) {
         return roomService.findById(id);
     }
 
@@ -46,7 +47,7 @@ public class RoomController {
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Actualizar sala", description = "Modifica el nombre de una sala existente")
-    public Mono<Room> update(@PathVariable Long id, @RequestBody UpdateRoomRequest request) {
+    public Mono<Room> update(@PathVariable @NonNull Long id, @RequestBody UpdateRoomRequest request) {
         return roomService.updateRoom(id, request.name());
     }
 
@@ -54,7 +55,7 @@ public class RoomController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Eliminar sala", description = "Elimina una sala del sistema")
-    public Mono<Void> delete(@PathVariable Long id) {
+    public Mono<Void> delete(@PathVariable @NonNull Long id) {
         return roomService.deleteRoom(id);
     }
 

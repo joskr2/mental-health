@@ -140,6 +140,7 @@ public class AiToolsConfig {
     @Description("Listar todas las salas disponibles.")
     @AllowedRoles({ Role.ROLE_ADMIN, Role.ROLE_PSYCHOLOGIST })
     public Function<EmptyRequest, List<Room>> listRoomsTool(RoomService service) {
-        return request -> service.findAll().collectList().block();
+        // Usar versión cacheable que retorna Mono<List<Room>>
+        return request -> service.findAllCached().block();
     }
 }
