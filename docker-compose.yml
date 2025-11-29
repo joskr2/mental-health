@@ -9,6 +9,8 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-clinic_secret_2024}
       LANG: en_US.utf8
       LC_ALL: en_US.utf8
+      TZ: America/Lima
+      PGTZ: America/Lima
     ports:
       - "${DB_PORT:-5432}:5432"
     volumes:
@@ -52,10 +54,10 @@ services:
       SPRING_R2DBC_URL: r2dbc:postgresql://postgres:5432/${POSTGRES_DB:-mental_clinic}
       SPRING_R2DBC_USERNAME: ${POSTGRES_USER:-clinic_user}
       SPRING_R2DBC_PASSWORD: ${POSTGRES_PASSWORD:-clinic_secret_2024}
-
       DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
-
+      TZ: America/Lima
       JAVA_OPTS: >-
+        -Duser.timezone=America/Lima
         -XX:+UseContainerSupport
         -XX:MaxRAMPercentage=70.0
         -Xlog:gc*:stdout:time
@@ -63,6 +65,19 @@ services:
       - "${APP_PORT:-8080}:8080"
     volumes:
       - ./logs:/app/logs
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "curl",
+          "--fail",
+          "--silent",
+          "http://localhost:8080/actuator/health",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 45s
     deploy:
       resources:
         limits:
@@ -95,7 +110,9 @@ services:
       DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY}
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRATION: ${JWT_EXPIRATION:-86400000}
+      TZ: America/Lima
       JAVA_OPTS: >-
+        -Duser.timezone=America/Lima
         -XX:+UseContainerSupport
         -XX:MaxRAMPercentage=75.0
         -XX:+ExitOnOutOfMemoryError

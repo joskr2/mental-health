@@ -11,6 +11,7 @@ import com.clinica.mentalhealth.web.dto.SessionInfo;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -39,8 +40,9 @@ public class AuthController {
     @Operation(summary = "Iniciar sesión", description = "Autentica usuario y devuelve access token (30 min) y refresh token (14 días). Crea una sesión con estado para máxima seguridad.")
     @ApiResponse(responseCode = "200", description = "Login exitoso, tokens generados")
     @ApiResponse(responseCode = "401", description = "Credenciales inválidas")
+    @ApiResponse(responseCode = "400", description = "Datos de entrada inválidos")
     public Mono<ResponseEntity<LoginResponse>> login(
-            @RequestBody LoginRequest request,
+            @Valid @RequestBody LoginRequest request,
             ServerHttpRequest httpRequest) {
 
         String deviceInfo = extractDeviceInfo(httpRequest);
@@ -60,8 +62,9 @@ public class AuthController {
             "Si se detecta reutilización de un token ya usado, TODAS las sesiones del usuario son revocadas por seguridad.")
     @ApiResponse(responseCode = "200", description = "Tokens refrescados exitosamente")
     @ApiResponse(responseCode = "401", description = "Refresh token inválido, expirado o ya utilizado")
+    @ApiResponse(responseCode = "400", description = "Datos de entrada inválidos")
     public Mono<ResponseEntity<LoginResponse>> refresh(
-            @RequestBody RefreshTokenRequest request,
+            @Valid @RequestBody RefreshTokenRequest request,
             ServerHttpRequest httpRequest) {
 
         String deviceInfo = extractDeviceInfo(httpRequest);
@@ -76,7 +79,8 @@ public class AuthController {
     @Operation(summary = "Cerrar sesión", description = "Revoca el refresh token actual. Si logoutAll=true, cierra sesión en TODOS los dispositivos.")
     @ApiResponse(responseCode = "200", description = "Sesión cerrada exitosamente")
     @ApiResponse(responseCode = "401", description = "Token inválido")
-    public Mono<ResponseEntity<Void>> logout(@RequestBody LogoutRequest request) {
+    @ApiResponse(responseCode = "400", description = "Datos de entrada inválidos")
+    public Mono<ResponseEntity<Void>> logout(@Valid @RequestBody LogoutRequest request) {
         if (request.logoutAll()) {
             // Obtener userId del token y revocar todas las sesiones
             if (!jwtService.validateRefreshToken(request.refreshToken())) {
