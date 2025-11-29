@@ -7,21 +7,20 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  */
 @ConfigurationProperties(prefix = "security.refresh-token")
 public record SecurityProperties(
-        /**
-         * Número máximo de sesiones activas por usuario.
-         * 0 = sin límite.
-         */
-        int maxSessions
-) {
-    public SecurityProperties {
-        // Valor por defecto si no se especifica
-        if (maxSessions < 0) {
-            maxSessions = 5;
-        }
+    /**
+     * Número máximo de sesiones activas por usuario.
+     * 0 = sin límite.
+     */
+    int maxSessions) {
+  public SecurityProperties {
+    // Valor por defecto si no se especifica
+    if (maxSessions < 0) {
+      maxSessions = 5;
     }
+  }
 
-    // Constructor con valor por defecto
-    public SecurityProperties() {
-        this(5);
-    }
+  // Constructor con valor por defecto
+  public SecurityProperties() {
+    this(5);
+  }
 }
