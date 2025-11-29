@@ -52,7 +52,8 @@ public class AuthController {
      * Comportamiento actual (stateless):
      * - Se genera un nuevo refresh token en cada uso
      * - El token viejo sigue siendo válido criptográficamente hasta expirar
-     * - Si el cliente no recibe el nuevo token (error de red), puede reintentar con el viejo
+     * - Si el cliente no recibe el nuevo token (error de red), puede reintentar con
+     * el viejo
      * 
      * Para máxima seguridad (requiere estado):
      * TODO: Implementar tabla 'refresh_token_sessions' o 'revoked_tokens' para:

@@ -45,7 +45,8 @@ public class DateCalculationService {
 
     // Parsear fecha y hora, rastreando si hubo fallback
     ParseResult<LocalDate> dateResult = parseRelativeDateWithConfidence(desc, now.toLocalDate());
-    ParseResult<LocalTime> timeResult = parseTimeWithConfidence(desc, request.preferredHour(), request.preferredMinute());
+    ParseResult<LocalTime> timeResult = parseTimeWithConfidence(desc, request.preferredHour(),
+        request.preferredMinute());
 
     LocalDateTime result = LocalDateTime.of(dateResult.value(), timeResult.value());
 
@@ -60,7 +61,8 @@ public class DateCalculationService {
     return DateCalculationResponse.from(result, now, confidence, warning);
   }
 
-  private record ParseResult<T>(T value, boolean parsed) {}
+  private record ParseResult<T>(T value, boolean parsed) {
+  }
 
   private DateCalculationResponse.Confidence calculateConfidence(boolean dateParsed, boolean timeParsed) {
     if (dateParsed && timeParsed) {
@@ -72,16 +74,16 @@ public class DateCalculationService {
     return DateCalculationResponse.Confidence.LOW;
   }
 
-  private String buildWarning(DateCalculationResponse.Confidence confidence, 
+  private String buildWarning(DateCalculationResponse.Confidence confidence,
       boolean dateParsed, boolean timeParsed, String originalDesc) {
     if (confidence == DateCalculationResponse.Confidence.HIGH) {
       return null;
     }
-    
+
     StringBuilder sb = new StringBuilder();
     if (confidence == DateCalculationResponse.Confidence.LOW) {
       sb.append("No se pudo interpretar la descripción '").append(originalDesc)
-        .append("'. Se usaron valores por defecto. ");
+          .append("'. Se usaron valores por defecto. ");
       sb.append("RECOMENDACIÓN: Pide al usuario que especifique la fecha y hora exactas.");
     } else {
       if (!dateParsed) {

@@ -11,7 +11,8 @@ import java.time.LocalDateTime;
  * @param daysFromNow     Días desde hoy (para validación)
  * @param isBusinessHours Si está dentro del horario laboral (8:00-20:00)
  * @param confidence      Nivel de confianza del parsing (HIGH, MEDIUM, LOW)
- * @param warning         Mensaje de advertencia si confidence es bajo (nullable)
+ * @param warning         Mensaje de advertencia si confidence es bajo
+ *                        (nullable)
  */
 public record DateCalculationResponse(
     String isoDateTime,
