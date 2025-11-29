@@ -1,6 +1,6 @@
 package com.clinica.mentalhealth.service;
 
-import com.clinica.mentalhealth.domain.Role;
+import com.clinica.mentalhealth.config.ToolPermissionRegistry;
 import com.clinica.mentalhealth.security.UserPrincipal;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.messages.UserMessage;
@@ -14,7 +14,6 @@ import reactor.core.scheduler.Schedulers;
 
 import java.time.LocalDateTime;
 import java.time.format.TextStyle;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
@@ -23,10 +22,12 @@ import java.util.Set;
 public class ClinicalAgentService {
 
     private final ChatClient chatClient;
+    private final ToolPermissionRegistry toolPermissionRegistry;
 
-    public ClinicalAgentService(ChatClient.Builder builder) {
+    public ClinicalAgentService(ChatClient.Builder builder, ToolPermissionRegistry toolPermissionRegistry) {
         // No registramos tools por defecto, se hace dinámicamente por rol
         this.chatClient = builder.build();
+        this.toolPermissionRegistry = toolPermissionRegistry;
     }
 
     public Mono<String> processRequest(String rawUserMessage) {
@@ -40,22 +41,8 @@ public class ClinicalAgentService {
         LocalDateTime now = LocalDateTime.now();
         String dayOfWeek = now.getDayOfWeek().getDisplayName(TextStyle.FULL, new Locale("es", "ES"));
 
-        // --- 2. SEGURIDAD: FILTRO DE HERRAMIENTAS POR ROL ---
-        Set<String> allowedTools = new HashSet<>();
-
-        // Tools Comunes (Staff: Admin + Psicólogos)
-        if (user.role().equals(Role.ROLE_ADMIN.name()) || user.role().equals(Role.ROLE_PSYCHOLOGIST.name())) {
-            allowedTools.add("searchPatientTool");
-            allowedTools.add("createPatientTool");
-            allowedTools.add("bookAppointmentTool");
-            allowedTools.add("listRoomsTool");
-        }
-
-        // Tools Administrativas (Solo Admin)
-        if (user.role().equals(Role.ROLE_ADMIN.name())) {
-            allowedTools.add("createPsychologistTool");
-            allowedTools.add("createRoomTool");
-        }
+        // --- 2. SEGURIDAD: FILTRO DE HERRAMIENTAS POR ROL (usando ToolPermissionRegistry) ---
+        Set<String> allowedTools = toolPermissionRegistry.getToolsForRole(user.role());
 
         // --- 3. CONFIGURACIÓN DINÁMICA ---
         var options = OpenAiChatOptions.builder()
@@ -78,7 +65,10 @@ public class ClinicalAgentService {
                 3. NO inventes datos. Si te falta el DNI para crear paciente, PÍDELO.
                 
                 --- REGLAS DE NEGOCIO ---
-                A. FECHAS: Calcula la fecha ISO exacta basándote en la FECHA ACTUAL.
+                A. FECHAS: SIEMPRE usa calculateDateTool para convertir fechas relativas a ISO.
+                   - NUNCA calcules fechas mentalmente.
+                   - Ejemplos: "próximo lunes a las 4" → llama calculateDateTool("próximo lunes a las 4")
+                   - Usa el resultado isoDateTime para bookAppointmentTool.
                 B. DOCTOR: Si el usuario es Psicólogo y dice "conmigo", usa su ID (%d).
                 C. CREACIÓN: Si creas un paciente, usa el ID retornado para agendar inmediatamente.
                 
