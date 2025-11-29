@@ -8,6 +8,7 @@ import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZoneId;
 import java.time.temporal.TemporalAdjusters;
 import java.util.Locale;
 import java.util.Map;
@@ -18,9 +19,18 @@ import java.util.regex.Pattern;
 /**
  * Servicio para cálculo determinístico de fechas relativas.
  * Elimina la alucinación del LLM al calcular fechas con Java.
+ * 
+ * IMPORTANTE: Usa ZoneId explícito para evitar desfases cuando el servidor
+ * está en UTC (nube) pero la BD/usuarios están en America/Lima.
  */
 @Service
 public class DateCalculationService {
+
+  /**
+   * Zona horaria de Perú. Crítico para sincronizar con PostgreSQL
+   * que tiene SET timezone = 'America/Lima' en init-db.
+   */
+  private static final ZoneId ZONE_LIMA = ZoneId.of("America/Lima");
 
   private static final Map<String, DayOfWeek> DIAS_SEMANA = Map.of(
       "lunes", DayOfWeek.MONDAY,
@@ -40,7 +50,8 @@ public class DateCalculationService {
   private static final Pattern EN_DIAS = Pattern.compile("en (\\d+) d[íi]as?");
 
   public DateCalculationResponse calculate(DateCalculationRequest request) {
-    LocalDateTime now = LocalDateTime.now();
+    // Usar zona horaria explícita para evitar desfases con servidores en UTC
+    LocalDateTime now = LocalDateTime.now(ZONE_LIMA);
     String desc = request.relativeDescription().toLowerCase(Locale.ROOT);
 
     // Parsear fecha y hora, rastreando si hubo fallback

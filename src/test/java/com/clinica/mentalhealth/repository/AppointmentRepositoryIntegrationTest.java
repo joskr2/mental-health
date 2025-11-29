@@ -4,6 +4,7 @@ import com.clinica.mentalhealth.domain.Appointment;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.data.r2dbc.DataR2dbcTest;
+import org.springframework.r2dbc.core.DatabaseClient;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -60,6 +61,60 @@ class AppointmentRepositoryIntegrationTest {
   @Autowired
   private AppointmentRepository appointmentRepository;
 
+  @Autowired
+  private DatabaseClient databaseClient;
+
+  /**
+   * Helper para insertar datos de prueba necesarios para cumplir con las FKs.
+   * En R2DBC no podemos usar @Sql, así que usamos DatabaseClient.
+   */
+  private void insertTestData() {
+    // Insertar usuario para paciente
+    databaseClient.sql("""
+        INSERT INTO "users" (id, username, password, role)
+        VALUES (1, 'patient_test', 'hashedpassword', 'PATIENT')
+        ON CONFLICT (id) DO NOTHING
+        """)
+        .then()
+        .block();
+
+    // Insertar usuario para psicólogo
+    databaseClient.sql("""
+        INSERT INTO "users" (id, username, password, role)
+        VALUES (2, 'psychologist_test', 'hashedpassword', 'PSYCHOLOGIST')
+        ON CONFLICT (id) DO NOTHING
+        """)
+        .then()
+        .block();
+
+    // Insertar paciente
+    databaseClient.sql("""
+        INSERT INTO "patients" (id, name, email, phone, dni)
+        VALUES (1, 'Juan García Test', 'juan@test.com', '+51999888777', '12345678')
+        ON CONFLICT (id) DO NOTHING
+        """)
+        .then()
+        .block();
+
+    // Insertar psicólogo
+    databaseClient.sql("""
+        INSERT INTO "psychologists" (id, name, specialty, email, phone, dni)
+        VALUES (2, 'Dra. María López', 'Psicología Clínica', 'maria@test.com', '+51999777666', '87654321')
+        ON CONFLICT (id) DO NOTHING
+        """)
+        .then()
+        .block();
+
+    // Insertar sala
+    databaseClient.sql("""
+        INSERT INTO "rooms" (id, name)
+        VALUES (1, 'Consultorio Test 1')
+        ON CONFLICT (id) DO NOTHING
+        """)
+        .then()
+        .block();
+  }
+
   @Test
   void findPsychologistConflicts_ShouldReturnEmpty_WhenNoConflicts() {
     // Arrange
@@ -101,21 +156,19 @@ class AppointmentRepositoryIntegrationTest {
 
   @Test
   void save_ShouldPersistAppointment() {
-    // Arrange - Nota: En un test real, necesitarías crear primero
-    // el paciente, psicólogo y sala con IDs válidos.
-    // Este test verifica que la query de save funciona sintácticamente.
+    // Arrange - Insertar datos padre necesarios para cumplir con las FKs
+    insertTestData();
+
     var appointment = new Appointment(
         null,
         LocalDateTime.of(2025, 12, 15, 10, 0),
         LocalDateTime.of(2025, 12, 15, 11, 0),
-        1L, // patientId - debe existir en BD o desactivar FK checks
-        1L, // psychologistId
-        1L // roomId
+        1L, // patientId - insertado por insertTestData()
+        2L, // psychologistId - insertado por insertTestData()
+        1L // roomId - insertado por insertTestData()
     );
 
     // Act & Assert
-    // Nota: Este test fallará si no existen las FKs.
-    // En un ambiente de test completo, usarías @Sql para insertar datos de prueba.
     StepVerifier.create(appointmentRepository.save(appointment))
         .expectNextMatches(saved -> saved.id() != null)
         .verifyComplete();
