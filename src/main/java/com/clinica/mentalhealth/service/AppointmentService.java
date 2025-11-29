@@ -5,6 +5,8 @@ import com.clinica.mentalhealth.repository.AppointmentRepository;
 import com.clinica.mentalhealth.security.UserPrincipal;
 import com.clinica.mentalhealth.web.exception.ConflictException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.ReactiveSecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -17,6 +19,7 @@ import java.util.Objects;
 
 import static java.time.DayOfWeek.SUNDAY;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class AppointmentService {
@@ -88,7 +91,34 @@ public class AppointmentService {
                 .then(validatePsychologistAvailability(appointment))
                 .then(validatePatientAvailability(appointment))
                 .then(validateRoomAvailability(appointment))
-                .then(appointmentRepository.save(java.util.Objects.requireNonNull(appointment)));
+                .then(appointmentRepository.save(java.util.Objects.requireNonNull(appointment)))
+                .onErrorMap(DataIntegrityViolationException.class, this::mapConstraintViolation);
+    }
+
+    /**
+     * Convierte violaciones de constraint de base de datos en errores de negocio
+     * legibles.
+     * Esto captura race conditions que pasaron la validacion a nivel de aplicacion
+     * pero fueron detectadas por los EXCLUDE constraints de PostgreSQL.
+     */
+    private Throwable mapConstraintViolation(DataIntegrityViolationException ex) {
+        String message = ex.getMessage() != null ? ex.getMessage().toLowerCase() : "";
+        log.warn("Violacion de constraint detectada: {}", message);
+
+        if (message.contains("no_psychologist_overlap")) {
+            return new ConflictException("Conflicto de horario: El psicologo ya tiene una cita en ese horario.");
+        }
+        if (message.contains("no_patient_overlap")) {
+            return new ConflictException("Conflicto de horario: El paciente ya tiene una cita en ese horario.");
+        }
+        if (message.contains("no_room_overlap")) {
+            return new ConflictException("Conflicto de horario: La sala ya esta reservada en ese horario.");
+        }
+        if (message.contains("chk_time_order")) {
+            return new IllegalArgumentException("La hora de fin debe ser posterior a la hora de inicio.");
+        }
+        // Si no es un constraint conocido, propagar el error original
+        return new ConflictException("Conflicto al crear la cita. Por favor, intente con otro horario.");
     }
 
     // Reactive validation instead of throwing exceptions synchronously
