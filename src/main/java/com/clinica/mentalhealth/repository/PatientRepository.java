@@ -17,14 +17,14 @@ public interface PatientRepository extends ReactiveCrudRepository<Patient, Long>
     Mono<Boolean> existsByDni(String dni);
 
     /**
-     * Búsqueda fuzzy usando pg_trgm con operador %
-     * El threshold se configura a nivel de base de datos (0.1)
+     * Búsqueda fuzzy usando pg_trgm con similarity() explícito
+     * Usamos threshold 0.1 hardcodeado para garantizar tolerancia
      * Encuentra pacientes aunque haya errores tipográficos en el nombre
      * Ejemplo: "Gonsales" encontrará "González"
      */
     @Query("""
             SELECT * FROM "patients"
-            WHERE LOWER(name) % LOWER(:name)
+            WHERE similarity(LOWER(name), LOWER(:name)) > 0.1
             ORDER BY LOWER(name) <-> LOWER(:name) ASC
             LIMIT 20
             """)
