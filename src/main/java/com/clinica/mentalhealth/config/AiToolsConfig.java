@@ -24,10 +24,11 @@ public class AiToolsConfig {
     // --- HERRAMIENTA DE CÁLCULO DE FECHAS (Evita alucinación del LLM) ---
 
     @Bean
-    @Description("Calcular fecha exacta a partir de descripción relativa. USA SIEMPRE ESTA HERRAMIENTA para convertir " +
+    @Description("Calcular fecha exacta a partir de descripción relativa. USA SIEMPRE ESTA HERRAMIENTA para convertir "
+            +
             "expresiones como 'próximo lunes', 'mañana a las 4', 'en 3 días' a formato ISO. " +
             "NUNCA calcules fechas tú mismo, SIEMPRE usa esta herramienta.")
-    @AllowedRoles({Role.ROLE_ADMIN, Role.ROLE_PSYCHOLOGIST})
+    @AllowedRoles({ Role.ROLE_ADMIN, Role.ROLE_PSYCHOLOGIST })
     public Function<DateCalculationRequest, DateCalculationResponse> calculateDateTool(DateCalculationService service) {
         return service::calculate;
     }
@@ -36,14 +37,14 @@ public class AiToolsConfig {
 
     @Bean
     @Description("Buscar pacientes por nombre o por DNI.")
-    @AllowedRoles({Role.ROLE_ADMIN, Role.ROLE_PSYCHOLOGIST})
+    @AllowedRoles({ Role.ROLE_ADMIN, Role.ROLE_PSYCHOLOGIST })
     public Function<PatientSearchRequest, List<Patient>> searchPatientTool(PatientService service) {
         return request -> service.searchPatient(request.name()).collectList().block();
     }
 
     @Bean
     @Description("Crear un nuevo paciente. Requiere Nombre, Email, Teléfono y DNI.")
-    @AllowedRoles({Role.ROLE_ADMIN, Role.ROLE_PSYCHOLOGIST})
+    @AllowedRoles({ Role.ROLE_ADMIN, Role.ROLE_PSYCHOLOGIST })
     public Function<CreatePatientRequest, String> createPatientTool(PatientService service) {
         return request -> {
             try {
@@ -60,7 +61,7 @@ public class AiToolsConfig {
 
     @Bean
     @Description("Reservar una cita médica. Requiere ID paciente, ID doctor y Fecha ISO (usa calculateDateTool primero para obtener la fecha).")
-    @AllowedRoles({Role.ROLE_ADMIN, Role.ROLE_PSYCHOLOGIST})
+    @AllowedRoles({ Role.ROLE_ADMIN, Role.ROLE_PSYCHOLOGIST })
     public Function<BookingRequest, String> bookAppointmentTool(AppointmentService service) {
         return request -> {
             try {
@@ -79,7 +80,7 @@ public class AiToolsConfig {
 
     @Bean
     @Description("Contratar un nuevo Psicólogo. Requiere nombre, especialidad, email, teléfono, DNI y username. La contraseña se genera automáticamente.")
-    @AllowedRoles({Role.ROLE_ADMIN})
+    @AllowedRoles({ Role.ROLE_ADMIN })
     public Function<CreatePsychologistRequest, String> createPsychologistTool(PsychologistService service) {
         return request -> {
             try {
@@ -123,7 +124,7 @@ public class AiToolsConfig {
 
     @Bean
     @Description("Crear una nueva Sala/Consultorio. Requiere el nombre de la sala.")
-    @AllowedRoles({Role.ROLE_ADMIN})
+    @AllowedRoles({ Role.ROLE_ADMIN })
     public Function<CreateRoomRequest, String> createRoomTool(RoomService service) {
         return request -> {
             try {
@@ -137,7 +138,7 @@ public class AiToolsConfig {
 
     @Bean
     @Description("Listar todas las salas disponibles.")
-    @AllowedRoles({Role.ROLE_ADMIN, Role.ROLE_PSYCHOLOGIST})
+    @AllowedRoles({ Role.ROLE_ADMIN, Role.ROLE_PSYCHOLOGIST })
     public Function<EmptyRequest, List<Room>> listRoomsTool(RoomService service) {
         return request -> service.findAll().collectList().block();
     }
