@@ -14,23 +14,25 @@ import java.time.LocalDateTime;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    // 1. Error 400: Datos inválidos o Reglas de Negocio simples (Ej: Citas en domingo)
+    // 1. Error 400: Datos inválidos o Reglas de Negocio simples (Ej: Citas en
+    // domingo)
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ErrorResponse> handleBadRequest(IllegalArgumentException ex, ServerWebExchange exchange) {
         return buildResponse(HttpStatus.BAD_REQUEST, ex.getMessage(), exchange);
     }
 
     // 2. Error 409: Conflictos de Estado (Ej: Doctor ocupado, Sala ocupada)
-    @ExceptionHandler(IllegalStateException.class)
-    public ResponseEntity<ErrorResponse> handleConflict(IllegalStateException ex, ServerWebExchange exchange) {
+    @ExceptionHandler({ IllegalStateException.class, ConflictException.class })
+    public ResponseEntity<ErrorResponse> handleConflict(Exception ex, ServerWebExchange exchange) {
         return buildResponse(HttpStatus.CONFLICT, ex.getMessage(), exchange);
     }
 
     // 3. Error 403: Acceso Denegado (Ej: Paciente intentando agendar por otro)
     // Capturamos tanto la nuestra (IllegalAccess) como la de Spring (AccessDenied)
-    @ExceptionHandler({IllegalAccessException.class, AccessDeniedException.class})
+    @ExceptionHandler({ IllegalAccessException.class, AccessDeniedException.class })
     public ResponseEntity<ErrorResponse> handleForbidden(Exception ex, ServerWebExchange exchange) {
-        return buildResponse(HttpStatus.FORBIDDEN, "No tienes permiso para realizar esta acción o acceder a estos datos.", exchange);
+        return buildResponse(HttpStatus.FORBIDDEN,
+                "No tienes permiso para realizar esta acción o acceder a estos datos.", exchange);
     }
 
     // 4. Error 401: Credenciales inválidas
@@ -54,8 +56,7 @@ public class GlobalExceptionHandler {
                 status.value(),
                 status.getReasonPhrase(),
                 message,
-                exchange.getRequest().getPath().value()
-        );
+                exchange.getRequest().getPath().value());
         return ResponseEntity.status(status).body(errorResponse);
     }
 }
