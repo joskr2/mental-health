@@ -1,172 +1,288 @@
-# 🏥 Mental Health Clinic API
+# Mental Health Clinic API
 
-API REST reactiva para gestión de clínica de salud mental con asistente de IA integrado.
+API REST reactiva para gestion de clinica de salud mental con asistente de IA integrado.
 
-## 🚀 Inicio Rápido
+## Tabla de Contenidos
 
-### Opción 1: Script automatizado
+1. [Requisitos](#requisitos)
+2. [Configuracion Inicial](#configuracion-inicial)
+3. [Arranque de la Aplicacion](#arranque-de-la-aplicacion)
+4. [Endpoints](#endpoints)
+5. [Autenticacion](#autenticacion)
+6. [Asistente de IA](#asistente-de-ia)
+7. [Monitoreo](#monitoreo)
+8. [Estructura del Proyecto](#estructura-del-proyecto)
+
+---
+
+## Requisitos
+
+- Java 17 o superior
+- Docker y Docker Compose
+- API Key de DeepSeek (<https://platform.deepseek.com/>)
+
+---
+
+## Configuracion Inicial
+
+### 1. Clonar el repositorio
+
 ```bash
-./start.sh
+git clone <url-del-repositorio>
+cd mental-health
+```text
+
+### 2. Configurar variables de entorno
+
+Copiar el archivo de ejemplo y editar con tus credenciales:
+
+```bash
+cp .env.example .env
 ```
 
-### Opción 2: Manual
+Editar `.env` con los siguientes valores:
+
+```properties
+# Base de datos
+POSTGRES_DB=mental_clinic
+POSTGRES_USER=clinic_user
+POSTGRES_PASSWORD=clinic_secret_2024
+
+# API Key de IA (requerida)
+DEEPSEEK_API_KEY=sk-tu-api-key-aqui
+
+# Seguridad (solo produccion)
+JWT_SECRET=tu-secret-seguro-de-al-menos-64-caracteres
+```
+
+### 3. Dar permisos al script
+
 ```bash
-# 1. Configurar API Key
-export DEEPSEEK_API_KEY=tu_api_key_aqui
-
-# 2. Iniciar aplicación
-./mvnw spring-boot:run
-
-# 3. Acceder a Swagger UI
-open http://localhost:8080/swagger-ui.html
+chmod +x docker.sh
 ```
 
 ---
 
-## 📋 Requisitos
+## Arranque de la Aplicacion
 
-- ✅ Java 17 o superior
-- ✅ Maven 3.8+
-- ✅ API Key de DeepSeek (https://platform.deepseek.com/)
+### Comandos disponibles
 
----
+| Comando             | Descripcion                              |
+| ------------------- | ---------------------------------------- |
+| `./docker.sh dev`   | Desarrollo: App + PostgreSQL en Docker   |
+| `./docker.sh local` | App local (Maven) + PostgreSQL en Docker |
+| `./docker.sh prod`  | Produccion: Todo en Docker, optimizado   |
+| `./docker.sh db`    | Solo base de datos PostgreSQL            |
 
-## 🎯 Características
+### Desarrollo completo (Docker)
 
-### 🔐 Seguridad
-- Autenticación JWT
-- Roles: ADMIN, PSYCHOLOGIST, PATIENT
-- Autorización por método (@PreAuthorize)
+Inicia la aplicacion y la base de datos en contenedores:
 
-### 💾 Base de Datos
-- H2 en memoria (modo PostgreSQL)
-- R2DBC (Reactive Database Connectivity)
-- Inicialización automática de datos
+```bash
+./docker.sh dev
+```
 
-### ⚡ Cache
-- Caffeine Cache
-- 500 entradas máximas
-- Expiración: 30 minutos
+Servicios disponibles:
 
-### 🤖 IA Integrada
-- DeepSeek Chat Model
-- Asistente clínico con herramientas (tools)
-- Consulta de pacientes y citas
+- API: <http://localhost:8080>
+- Swagger UI: <http://localhost:8080/swagger-ui.html>
+- Health: <http://localhost:8080/actuator/health>
+- PostgreSQL: localhost:5432
 
-### 📖 Documentación
-- Swagger UI (acceso público)
-- OpenAPI 3.0
-- Endpoints interactivos
+### Desarrollo local (Hot Reload)
 
-### 📊 Monitoreo
-- Spring Boot Actuator
-- Health checks
-- Métricas de rendimiento
-- Estadísticas de caché
+Para desarrollo con recarga automatica de cambios:
 
----
+```bash
+./docker.sh local
+```
 
-## 🌐 Endpoints Principales
+Esto inicia PostgreSQL en Docker y la aplicacion con Maven (permite hot reload).
 
-### 🔓 Públicos (sin autenticación)
-- `GET /swagger-ui.html` - Documentación interactiva
-- `GET /actuator/health` - Estado de salud
-- `POST /api/auth/login` - Autenticación
+### Ver logs
 
-### 🔐 Protegidos (requieren JWT)
-- `GET /api/patients` - Listar pacientes
-- `POST /api/patients` - Crear paciente
-- `GET /api/psychologists` - Listar psicólogos
-- `POST /api/appointments` - Crear cita
-- `POST /api/agent/chat` - Interactuar con IA
+```bash
+./docker.sh dev-logs    # Logs de desarrollo
+./docker.sh db-logs     # Logs de PostgreSQL
+```
 
----
+### Detener servicios
 
-## 👤 Usuarios de Prueba
+```bash
+./docker.sh dev-stop    # Detener desarrollo
+./docker.sh prod-stop   # Detener produccion
+```
 
-| Username | Password | Rol |
-|----------|----------|-----|
-| admin | 123 | ROLE_ADMIN |
-| doc | 123 | ROLE_PSYCHOLOGIST |
-| pepe | 123 | ROLE_PATIENT |
+### Otros comandos utiles
+
+```bash
+./docker.sh status      # Estado de contenedores
+./docker.sh db-shell    # Consola PostgreSQL (psql)
+./docker.sh build       # Reconstruir imagen Docker
+./docker.sh clean       # Limpiar contenedores y volumenes
+./docker.sh help        # Ver todos los comandos
+```
 
 ---
 
-## 🔑 Autenticación
+## Endpoints
 
-### 1. Obtener Token
+### Publicos (sin autenticacion)
+
+| Metodo | Ruta                 | Descripcion               |
+| ------ | -------------------- | ------------------------- |
+| GET    | `/swagger-ui.html`   | Documentacion interactiva |
+| GET    | `/actuator/health`   | Estado de salud           |
+| POST   | `/api/auth/login`    | Autenticacion             |
+| POST   | `/api/auth/register` | Registro de usuario       |
+
+### Protegidos (requieren JWT)
+
+| Metodo | Ruta                 | Descripcion        |
+| ------ | -------------------- | ------------------ |
+| GET    | `/api/patients`      | Listar pacientes   |
+| POST   | `/api/patients`      | Crear paciente     |
+| GET    | `/api/psychologists` | Listar psicologos  |
+| POST   | `/api/appointments`  | Crear cita         |
+| GET    | `/api/rooms`         | Listar salas       |
+| POST   | `/api/agent/chat`    | Interactuar con IA |
+
+---
+
+## Autenticacion
+
+### Usuarios de prueba
+
+| Usuario | Password | Rol               |
+| ------- | -------- | ----------------- |
+| admin   | 123      | ROLE_ADMIN        |
+| doc     | 123      | ROLE_PSYCHOLOGIST |
+| pepe    | 123      | ROLE_PATIENT      |
+
+### Obtener token
+
 ```bash
 curl -X POST http://localhost:8080/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{"username":"admin","password":"123"}'
 ```
 
-### 2. Usar Token
+Respuesta:
+
+```json
+{
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+}
+```
+
+### Usar token en peticiones
+
 ```bash
 curl -X GET http://localhost:8080/api/patients \
-  -H "Authorization: Bearer TU_TOKEN_AQUI"
+  -H "Authorization: Bearer <tu-token>"
 ```
 
-### 3. En Swagger UI
-1. Click en **"Authorize"** 🔒
-2. Ingresa: `Bearer TU_TOKEN_AQUI`
-3. Click "Authorize"
-4. ✅ Listo para probar endpoints protegidos
+### Usar token en Swagger UI
+
+1. Abrir <http://localhost:8080/swagger-ui.html>
+2. Click en el boton "Authorize"
+3. Ingresar: `Bearer <tu-token>`
+4. Click en "Authorize"
+5. Ya puedes probar los endpoints protegidos
 
 ---
 
-## 🤖 Asistente de IA
+## Asistente de IA
 
-### Características
-- Consulta información de pacientes
-- Verifica disponibilidad de citas
-- Sugiere horarios disponibles
-- Responde en lenguaje natural
+El sistema incluye un asistente de IA que puede:
 
-### Ejemplo de Uso
+- Consultar informacion de pacientes
+- Verificar disponibilidad de citas
+- Sugerir horarios disponibles
+- Responder preguntas en lenguaje natural
+
+### Ejemplo de uso
+
 ```bash
 curl -X POST http://localhost:8080/api/agent/chat \
-  -H "Authorization: Bearer TOKEN" \
+  -H "Authorization: Bearer <tu-token>" \
   -H "Content-Type: application/json" \
-  -d '{"message":"¿Qué pacientes hay registrados?"}'
+  -d '{"message":"Que pacientes hay registrados?"}'
 ```
 
 ---
 
-## 📊 Monitoreo
+## Monitoreo
 
 ### Health Check
+
 ```bash
 curl http://localhost:8080/actuator/health
 ```
 
-### Métricas
+### Metricas
+
 ```bash
 curl http://localhost:8080/actuator/metrics
 ```
 
-### Estadísticas de Caché
+### Estadisticas de cache
+
 ```bash
 curl http://localhost:8080/actuator/caches
 ```
 
 ---
 
-## 🛠️ Desarrollo
+## Estructura del Proyecto
 
-### Estructura del Proyecto
-```
-src/main/java/com/clinica/mentalhealth/
-├── ai/                  # Configuración de IA y Tools
-├── config/              # Configuración (Security, OpenAPI, Cache)
-├── domain/              # Entidades (User, Patient, Psychologist, etc)
-├── repository/          # Repositorios R2DBC
-├── security/            # JWT, Filtros, UserPrincipal
-├── service/             # Lógica de negocio
-└── web/                 # Controladores REST
+```text
+mental-health/
+├── docker.sh                 # Script principal de comandos
+├── docker-compose.yml        # Configuracion Docker
+├── Dockerfile                # Imagen de la aplicacion
+├── pom.xml                   # Dependencias Maven
+├── .env.example              # Plantilla de variables de entorno
+├── docker/
+│   └── init-db/              # Scripts de inicializacion PostgreSQL
+└── src/
+    └── main/
+        ├── java/com/clinica/mentalhealth/
+        │   ├── ai/           # Configuracion de IA y Tools
+        │   ├── config/       # Seguridad, OpenAPI, Cache
+        │   ├── domain/       # Entidades JPA
+        │   ├── repository/   # Repositorios R2DBC
+        │   ├── security/     # JWT, Filtros
+        │   ├── service/      # Logica de negocio
+        │   └── web/          # Controladores REST
+        └── resources/
+            ├── application.properties      # Configuracion base
+            ├── application-dev.properties  # Perfil desarrollo
+            ├── application-prod.properties # Perfil produccion
+            └── schema.sql                  # Esquema de base de datos
 ```
 
-### Comandos Útiles
+---
+
+## Perfiles de Ejecucion
+
+| Perfil | Base de Datos | Logs  | Swagger | Uso        |
+| ------ | ------------- | ----- | ------- | ---------- |
+| dev    | PostgreSQL    | DEBUG | Si      | Desarrollo |
+| prod   | PostgreSQL    | WARN  | No      | Produccion |
+
+Activar un perfil:
+
+```bash
+export SPRING_PROFILES_ACTIVE=dev
+```
+
+O en Docker Compose (ya configurado automaticamente).
+
+---
+
+## Comandos Maven
+
 ```bash
 # Compilar
 ./mvnw clean compile
@@ -174,89 +290,37 @@ src/main/java/com/clinica/mentalhealth/
 # Ejecutar tests
 ./mvnw test
 
-# Empaquetar
-./mvnw clean package
+# Empaquetar (genera JAR)
+./mvnw clean package -DskipTests
 
-# Limpiar completamente
-./mvnw clean
-rm -rf target/
+# Ejecutar directamente
+./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
 ```
 
 ---
 
-## 📚 Documentación
+## Solucion de Problemas
 
-- 📖 [MEJORAS_IMPLEMENTADAS.md](MEJORAS_IMPLEMENTADAS.md) - Guía detallada de configuración
-- 🆘 [TROUBLESHOOTING.md](TROUBLESHOOTING.md) - Solución de problemas comunes
-- 📋 [RESUMEN_CAMBIOS.md](RESUMEN_CAMBIOS.md) - Resumen de cambios recientes
+### La aplicacion no inicia
 
----
+1. Verificar que Docker este corriendo: `docker info`
+2. Verificar que PostgreSQL este saludable: `./docker.sh status`
+3. Revisar logs: `./docker.sh dev-logs`
 
-## 🔧 Configuración
+### Error de conexion a base de datos
 
-### Variables de Entorno
-```bash
-# Requerida
-export DEEPSEEK_API_KEY=sk-xxxxxxxxxxxxx
+1. Verificar que el contenedor de PostgreSQL este corriendo
+2. Esperar unos segundos a que PostgreSQL este listo
+3. Verificar credenciales en `.env`
 
-# Opcional (ya tienen valores por defecto)
-export SERVER_PORT=8080
-export SPRING_PROFILES_ACTIVE=dev
-```
+### API Key de DeepSeek no funciona
 
-### application.properties
-```properties
-# Base de datos
-spring.r2dbc.url=r2dbc:h2:mem:///mental-clinic-db
-
-# Caché
-spring.cache.type=caffeine
-spring.cache.caffeine.spec=maximumSize=500,expireAfterWrite=30m
-
-# IA
-spring.ai.openai.api-key=${DEEPSEEK_API_KEY}
-spring.ai.openai.base-url=https://api.deepseek.com
-```
+1. Verificar que la key este configurada en `.env`
+2. Verificar que la key sea valida en <https://platform.deepseek.com/>
+3. Reiniciar la aplicacion despues de cambiar `.env`
 
 ---
 
-## 🚦 Estado del Proyecto
+## Licencia
 
-- ✅ Configuración unificada
-- ✅ Swagger UI sin autenticación
-- ✅ Caché implementado
-- ✅ IA integrada
-- ✅ Logging mejorado
-- ✅ Documentación completa
-
----
-
-## 📝 Licencia
-
-Este proyecto es para fines educativos.
-
----
-
-## 🤝 Contribuir
-
-1. Fork el proyecto
-2. Crea una rama (`git checkout -b feature/mejora`)
-3. Commit tus cambios (`git commit -am 'Agrega mejora'`)
-4. Push a la rama (`git push origin feature/mejora`)
-5. Abre un Pull Request
-
----
-
-## 📞 Soporte
-
-Si encuentras problemas:
-
-1. Revisa [TROUBLESHOOTING.md](TROUBLESHOOTING.md)
-2. Verifica los logs de la aplicación
-3. Consulta la documentación de Spring Boot
-
----
-
-**Última actualización**: 26 de Noviembre, 2025  
-**Versión**: 0.0.1-SNAPSHOT
-
+Proyecto con fines educativos.

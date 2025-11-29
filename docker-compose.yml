@@ -1,0 +1,145 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: mental-health-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-mental_clinic}
+      POSTGRES_USER: ${POSTGRES_USER:-clinic_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-clinic_secret_2024}
+      LANG: en_US.utf8
+      LC_ALL: en_US.utf8
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+      - ./docker/init-db:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-clinic_user} -d ${POSTGRES_DB:-mental_clinic}",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+        reservations:
+          cpus: "0.25"
+          memory: 128M
+    networks:
+      - mental-health-network
+
+  app-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mental-health-api-dev
+    restart: unless-stopped
+    profiles:
+      - dev
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+      SPRING_R2DBC_URL: r2dbc:postgresql://postgres:5432/${POSTGRES_DB:-mental_clinic}
+      SPRING_R2DBC_USERNAME: ${POSTGRES_USER:-clinic_user}
+      SPRING_R2DBC_PASSWORD: ${POSTGRES_PASSWORD:-clinic_secret_2024}
+
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
+
+      JAVA_OPTS: >-
+        -XX:+UseContainerSupport
+        -XX:MaxRAMPercentage=70.0
+        -Xlog:gc*:stdout:time
+    ports:
+      - "${APP_PORT:-8080}:8080"
+    volumes:
+      - ./logs:/app/logs
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+        reservations:
+          cpus: "0.5"
+          memory: 256M
+    networks:
+      - mental-health-network
+    labels:
+      - "environment=development"
+
+  app-prod:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mental-health-api-prod
+    restart: always
+    profiles:
+      - prod
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_R2DBC_URL: r2dbc:postgresql://postgres:5432/${POSTGRES_DB:-mental_clinic}
+      SPRING_R2DBC_USERNAME: ${POSTGRES_USER:-clinic_user}
+      SPRING_R2DBC_PASSWORD: ${POSTGRES_PASSWORD:-clinic_secret_2024}
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRATION: ${JWT_EXPIRATION:-86400000}
+      JAVA_OPTS: >-
+        -XX:+UseContainerSupport
+        -XX:MaxRAMPercentage=75.0
+        -XX:+ExitOnOutOfMemoryError
+        -XX:+HeapDumpOnOutOfMemoryError
+        -XX:HeapDumpPath=/app/logs/heapdump.hprof
+        -Xlog:gc*:file=/app/logs/gc.log:time,uptime:filecount=5,filesize=10M
+    ports:
+      - "${APP_PORT:-8080}:8080"
+    volumes:
+      - app_logs:/app/logs
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost:8080/actuator/health",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 1G
+        reservations:
+          cpus: "0.5"
+          memory: 512M
+    networks:
+      - mental-health-network
+    labels:
+      - "environment=production"
+
+networks:
+  mental-health-network:
+    driver: bridge
+    name: mental-health-net
+
+volumes:
+  postgres_data:
+    name: mental-health-postgres-data
+  app_logs:
+    name: mental-health-app-logs
