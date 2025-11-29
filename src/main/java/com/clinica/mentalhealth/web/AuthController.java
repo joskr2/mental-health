@@ -46,6 +46,22 @@ public class AuthController {
     @Operation(summary = "Refrescar tokens", description = "Usa el refresh token para obtener un nuevo par de tokens (rotación)")
     @ApiResponse(responseCode = "200", description = "Tokens refrescados exitosamente")
     @ApiResponse(responseCode = "401", description = "Refresh token inválido o expirado")
+    /*
+     * NOTA SOBRE SEGURIDAD DE REFRESH TOKEN ROTATION:
+     * 
+     * Comportamiento actual (stateless):
+     * - Se genera un nuevo refresh token en cada uso
+     * - El token viejo sigue siendo válido criptográficamente hasta expirar
+     * - Si el cliente no recibe el nuevo token (error de red), puede reintentar con el viejo
+     * 
+     * Para máxima seguridad (requiere estado):
+     * TODO: Implementar tabla 'refresh_token_sessions' o 'revoked_tokens' para:
+     * 1. Invalidar tokens usados (one-time use)
+     * 2. Detectar reutilización de tokens (posible robo)
+     * 3. Permitir "cerrar sesión en todos los dispositivos"
+     * 
+     * Trade-off actual: Simplicidad > Seguridad máxima (aceptable para MVP)
+     */
     public Mono<ResponseEntity<LoginResponse>> refresh(@RequestBody RefreshTokenRequest request) {
         String refreshToken = request.refreshToken();
         if (!jwtService.validateRefreshToken(refreshToken)) {

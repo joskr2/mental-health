@@ -43,24 +43,74 @@ public class DateCalculationService {
     LocalDateTime now = LocalDateTime.now();
     String desc = request.relativeDescription().toLowerCase(Locale.ROOT);
 
-    LocalDate targetDate = parseRelativeDate(desc, now.toLocalDate());
-    LocalTime targetTime = parseTime(desc, request.preferredHour(), request.preferredMinute());
+    // Parsear fecha y hora, rastreando si hubo fallback
+    ParseResult<LocalDate> dateResult = parseRelativeDateWithConfidence(desc, now.toLocalDate());
+    ParseResult<LocalTime> timeResult = parseTimeWithConfidence(desc, request.preferredHour(), request.preferredMinute());
 
-    LocalDateTime result = LocalDateTime.of(targetDate, targetTime);
+    LocalDateTime result = LocalDateTime.of(dateResult.value(), timeResult.value());
 
     if (result.isBefore(now)) {
       result = adjustToFuture(result, now);
     }
 
-    return DateCalculationResponse.from(result, now);
+    // Calcular nivel de confianza combinado
+    var confidence = calculateConfidence(dateResult.parsed(), timeResult.parsed());
+    String warning = buildWarning(confidence, dateResult.parsed(), timeResult.parsed(), desc);
+
+    return DateCalculationResponse.from(result, now, confidence, warning);
   }
 
-  private LocalDate parseRelativeDate(String desc, LocalDate today) {
+  private record ParseResult<T>(T value, boolean parsed) {}
+
+  private DateCalculationResponse.Confidence calculateConfidence(boolean dateParsed, boolean timeParsed) {
+    if (dateParsed && timeParsed) {
+      return DateCalculationResponse.Confidence.HIGH;
+    }
+    if (dateParsed || timeParsed) {
+      return DateCalculationResponse.Confidence.MEDIUM;
+    }
+    return DateCalculationResponse.Confidence.LOW;
+  }
+
+  private String buildWarning(DateCalculationResponse.Confidence confidence, 
+      boolean dateParsed, boolean timeParsed, String originalDesc) {
+    if (confidence == DateCalculationResponse.Confidence.HIGH) {
+      return null;
+    }
+    
+    StringBuilder sb = new StringBuilder();
+    if (confidence == DateCalculationResponse.Confidence.LOW) {
+      sb.append("No se pudo interpretar la descripción '").append(originalDesc)
+        .append("'. Se usaron valores por defecto. ");
+      sb.append("RECOMENDACIÓN: Pide al usuario que especifique la fecha y hora exactas.");
+    } else {
+      if (!dateParsed) {
+        sb.append("No se detectó fecha específica, se asumió mañana. ");
+      }
+      if (!timeParsed) {
+        sb.append("No se detectó hora específica, se usó hora por defecto. ");
+      }
+      sb.append("Confirma con el usuario si es correcto.");
+    }
+    return sb.toString();
+  }
+
+  private ParseResult<LocalDate> parseRelativeDateWithConfidence(String desc, LocalDate today) {
     return parseSimpleRelativeDate(desc, today)
         .or(() -> parseDaysFromNow(desc, today))
         .or(() -> parseWeekDay(desc, today))
         .or(() -> parseNextWeek(desc, today))
-        .orElse(today.plusDays(1));
+        .map(date -> new ParseResult<>(date, true))
+        .orElse(new ParseResult<>(today.plusDays(1), false)); // Fallback: mañana
+  }
+
+  private ParseResult<LocalTime> parseTimeWithConfidence(String desc, Integer preferredHour, Integer preferredMinute) {
+    return parseTime24h(desc)
+        .or(() -> parseTime12h(desc))
+        .or(() -> parseTimeInformal(desc))
+        .or(() -> parseTimeKeywords(desc))
+        .map(time -> new ParseResult<>(time, true))
+        .orElseGet(() -> new ParseResult<>(buildDefaultTime(preferredHour, preferredMinute), false));
   }
 
   private Optional<LocalDate> parseSimpleRelativeDate(String desc, LocalDate today) {
@@ -114,14 +164,6 @@ public class DateCalculationService {
       return Optional.of(today.with(TemporalAdjusters.next(DayOfWeek.MONDAY)));
     }
     return Optional.empty();
-  }
-
-  private LocalTime parseTime(String desc, Integer preferredHour, Integer preferredMinute) {
-    return parseTime24h(desc)
-        .or(() -> parseTime12h(desc))
-        .or(() -> parseTimeInformal(desc))
-        .or(() -> parseTimeKeywords(desc))
-        .orElseGet(() -> buildDefaultTime(preferredHour, preferredMinute));
   }
 
   private Optional<LocalTime> parseTime24h(String desc) {

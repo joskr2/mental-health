@@ -10,15 +10,33 @@ import java.time.LocalDateTime;
  * @param dayOfWeek       Día de la semana calculado
  * @param daysFromNow     Días desde hoy (para validación)
  * @param isBusinessHours Si está dentro del horario laboral (8:00-20:00)
+ * @param confidence      Nivel de confianza del parsing (HIGH, MEDIUM, LOW)
+ * @param warning         Mensaje de advertencia si confidence es bajo (nullable)
  */
 public record DateCalculationResponse(
     String isoDateTime,
     String humanReadable,
     String dayOfWeek,
     int daysFromNow,
-    boolean isBusinessHours) {
+    boolean isBusinessHours,
+    Confidence confidence,
+    String warning) {
 
-  public static DateCalculationResponse from(LocalDateTime dateTime, LocalDateTime now) {
+  /**
+   * Nivel de confianza en la interpretación de la fecha.
+   * LOW indica que el LLM debería pedir aclaración al usuario.
+   */
+  public enum Confidence {
+    /** Fecha y hora explícitas detectadas */
+    HIGH,
+    /** Solo fecha o solo hora detectada, se usaron defaults */
+    MEDIUM,
+    /** Fallback completo a valores por defecto, pedir aclaración */
+    LOW
+  }
+
+  public static DateCalculationResponse from(LocalDateTime dateTime, LocalDateTime now,
+      Confidence confidence, String warning) {
     var dayOfWeekEs = dateTime.getDayOfWeek()
         .getDisplayName(java.time.format.TextStyle.FULL, new java.util.Locale("es", "ES"));
 
@@ -40,6 +58,15 @@ public record DateCalculationResponse(
         humanReadable,
         dayOfWeekEs,
         (int) daysFrom,
-        businessHours);
+        businessHours,
+        confidence,
+        warning);
+  }
+
+  /**
+   * Método de conveniencia para respuestas de alta confianza.
+   */
+  public static DateCalculationResponse from(LocalDateTime dateTime, LocalDateTime now) {
+    return from(dateTime, now, Confidence.HIGH, null);
   }
 }
