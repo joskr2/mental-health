@@ -18,9 +18,14 @@ CREATE EXTENSION IF NOT EXISTS "btree_gist";
 -- Configuración de timezone
 SET timezone = 'America/Lima';
 
+-- === Bajar el umbral de similitud para ser más tolerante ===
+-- Por defecto es 0.3. Lo bajamos a 0.1 para que "Gonsales" encuentre "González"
+ALTER DATABASE mental_clinic SET pg_trgm.similarity_threshold = 0.1;
+
 -- Log de inicialización
 DO $$
 BEGIN
     RAISE NOTICE 'Base de datos mental_clinic inicializada correctamente';
     RAISE NOTICE 'Extensiones instaladas: uuid-ossp, pg_trgm, btree_gist';
+    RAISE NOTICE 'pg_trgm.similarity_threshold configurado a 0.1';
 END $$;

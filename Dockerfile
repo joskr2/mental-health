@@ -1,5 +1,4 @@
-FROM eclipse-temurin:17-jdk-alpine AS builder
-ARG MAVEN_VERSION=3.9.6
+FROM eclipse-temurin:17-jdk AS builder
 WORKDIR /app
 
 COPY pom.xml mvnw ./
@@ -15,15 +14,16 @@ RUN ./mvnw package -DskipTests -B
 
 RUN java -Djarmode=layertools -jar target/*.jar extract --destination extracted
 
-FROM eclipse-temurin:17-jre-alpine AS runtime
+FROM eclipse-temurin:17-jre AS runtime
 
 LABEL maintainer="Mental Health Clinic"
 LABEL version="1.0"
 LABEL description="API Reactiva para Clínica de Salud Mental"
 
-RUN addgroup -g 1001 -S appgroup && \
-    adduser -u 1001 -S appuser -G appgroup && \
-    apk add --no-cache curl
+RUN groupadd -g 1001 appgroup && \
+    useradd -u 1001 -g appgroup -s /bin/bash appuser && \
+    apt-get update && apt-get install -y --no-install-recommends curl && \
+    rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 

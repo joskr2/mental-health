@@ -26,13 +26,16 @@ public class SecurityConfig {
                         .pathMatchers(HttpMethod.POST, "/api/auth/login", "/api/auth/refresh").permitAll()
 
                         // Swagger UI y OpenAPI (publicas para desarrollo)
-                        .pathMatchers("/v3/api-docs/**").permitAll()
-                        .pathMatchers("/swagger-ui/**").permitAll()
-                        .pathMatchers("/swagger-ui.html").permitAll()
-                        .pathMatchers("/webjars/**").permitAll()
+                        .pathMatchers(
+                                "/v3/api-docs/**",
+                                "/v3/api-docs.yaml",
+                                "/swagger-ui/**",
+                                "/swagger-ui.html",
+                                "/swagger-resources/**",
+                                "/webjars/**")
+                        .permitAll()
 
                         // Actuator endpoints (publicas para monitoreo)
-                        .pathMatchers("/actuator/health").permitAll()
                         .pathMatchers("/actuator/**").permitAll()
 
                         // Todas las demas rutas requieren autenticacion
