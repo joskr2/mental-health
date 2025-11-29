@@ -26,10 +26,13 @@ import java.time.LocalDateTime;
  * - Incompatibilidades de tipos de datos
  * - Comportamiento real de las queries (nulls, ordenamiento, etc.)
  * 
- * Requiere Docker para ejecutarse.
+ * Requiere Docker para ejecutarse. Ejecutar con:
+ * ./mvnw test -Dtest=AppointmentRepositoryIntegrationTest
+ * 
+ * Para CI/CD, asegúrate de que Docker esté disponible o excluye este test.
  */
 @DataR2dbcTest
-@Testcontainers
+@Testcontainers(disabledWithoutDocker = true)
 @ActiveProfiles("test")
 class AppointmentRepositoryIntegrationTest {
 
