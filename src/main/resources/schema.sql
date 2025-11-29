@@ -50,3 +50,15 @@ CREATE INDEX IF NOT EXISTS idx_appointments_patient_time
     
 CREATE INDEX IF NOT EXISTS idx_appointments_room_time 
     ON "appointments" (room_id, start_time, end_time);
+
+-- === Índices para Búsqueda Difusa (Fuzzy Search) con pg_trgm ===
+
+-- Índice para pacientes (Usamos LOWER para que sea insensible a mayúsculas/minúsculas)
+CREATE INDEX IF NOT EXISTS trgm_idx_patients_name 
+    ON "patients" 
+    USING GIN (LOWER(name) gin_trgm_ops);
+
+-- Índice para psicólogos
+CREATE INDEX IF NOT EXISTS trgm_idx_psychologists_name 
+    ON "psychologists" 
+    USING GIN (LOWER(name) gin_trgm_ops);

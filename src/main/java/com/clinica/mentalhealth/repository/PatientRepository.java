@@ -13,12 +13,17 @@ import reactor.core.publisher.Mono;
 
 // 4. La definición
 public interface PatientRepository extends ReactiveCrudRepository<Patient, Long> {
-     Mono<Patient> findByEmail(String email);
+    Mono<Patient> findByEmail(String email);
 
     // Búsqueda exacta por DNI (Prioritaria)
     Mono<Patient> findByDni(String dni);
 
-    // Búsqueda por nombre parcial (Secundaria)
-    @Query("SELECT * FROM \"patients\" WHERE LOWER(name) LIKE LOWER(CONCAT('%', :name, '%'))")
+    // Búsqueda difusa por nombre usando pg_trgm (tolerante a errores ortográficos)
+    @Query("""
+                SELECT * FROM "patients"
+                WHERE LOWER(name) % LOWER(:name)
+                ORDER BY LOWER(name) <-> LOWER(:name) ASC
+                LIMIT 20
+            """)
     Flux<Patient> findByNameLike(String name);
 }
