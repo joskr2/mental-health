@@ -18,6 +18,7 @@ import java.time.LocalTime;
 import java.util.Objects;
 
 import static java.time.DayOfWeek.SUNDAY;
+import static com.clinica.mentalhealth.domain.Role.*;
 
 @Slf4j
 @Service
@@ -29,10 +30,10 @@ public class AppointmentService {
     private static final LocalTime OPENING_TIME = LocalTime.of(8, 0);
     private static final LocalTime CLOSING_TIME = LocalTime.of(22, 0);
 
-    // Role constants to keep checks consistent
-    private static final String ROLE_ADMIN = "ROLE_ADMIN";
-    private static final String ROLE_PSYCHOLOGIST = "ROLE_PSYCHOLOGIST";
-    private static final String ROLE_PATIENT = "ROLE_PATIENT";
+    // Usar Role enum directamente para evitar strings mágicos y errores de tipeo
+    private static final String ADMIN_ROLE = ROLE_ADMIN.name();
+    private static final String PSYCHOLOGIST_ROLE = ROLE_PSYCHOLOGIST.name();
+    private static final String PATIENT_ROLE = ROLE_PATIENT.name();
 
     // Helper to obtain current user reactively
     private Mono<UserPrincipal> currentUser() {
@@ -46,7 +47,7 @@ public class AppointmentService {
     public Mono<Appointment> createAppointment(Appointment appointment) {
         return currentUser()
                 .flatMap(user -> {
-                    if (ROLE_PATIENT.equals(user.role()) && !user.id().equals(appointment.patientId())) {
+                    if (PATIENT_ROLE.equals(user.role()) && !user.id().equals(appointment.patientId())) {
                         return Mono.error(
                                 new IllegalAccessException("Los pacientes solo pueden agendar sus propias citas."));
                     }
@@ -65,13 +66,13 @@ public class AppointmentService {
     public Flux<Appointment> getMyAppointments() {
         return currentUser()
                 .flatMapMany(user -> {
-                    if (ROLE_ADMIN.equals(user.role())) {
+                    if (ADMIN_ROLE.equals(user.role())) {
                         return appointmentRepository.findAll();
                     }
-                    if (ROLE_PSYCHOLOGIST.equals(user.role())) {
+                    if (PSYCHOLOGIST_ROLE.equals(user.role())) {
                         return appointmentRepository.findByPsychologistId(user.id());
                     }
-                    if (ROLE_PATIENT.equals(user.role())) {
+                    if (PATIENT_ROLE.equals(user.role())) {
                         return appointmentRepository.findByPatientId(user.id());
                     }
                     return Flux.empty();
@@ -184,11 +185,11 @@ public class AppointmentService {
                                 Mono.error(new IllegalArgumentException("Cita no encontrada con ID: " + safeId)))
                         .flatMap(appointment -> {
                             // Admin puede cancelar cualquier cita
-                            if (ROLE_ADMIN.equals(user.role())) {
+                            if (ADMIN_ROLE.equals(user.role())) {
                                 return appointmentRepository.deleteById(safeId);
                             }
                             // Psicólogo solo puede cancelar sus propias citas
-                            if (ROLE_PSYCHOLOGIST.equals(user.role())) {
+                            if (PSYCHOLOGIST_ROLE.equals(user.role())) {
                                 if (user.id().equals(appointment.psychologistId())) {
                                     return appointmentRepository.deleteById(safeId);
                                 }
