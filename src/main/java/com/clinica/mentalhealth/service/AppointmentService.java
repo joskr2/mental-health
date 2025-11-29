@@ -87,11 +87,11 @@ public class AppointmentService {
     }
 
     private Mono<Appointment> processAppointment(Appointment appointment) {
-        return validateBusinessHours(appointment)
-                .then(validatePsychologistAvailability(appointment))
-                .then(validatePatientAvailability(appointment))
-                .then(validateRoomAvailability(appointment))
-                .then(appointmentRepository.save(java.util.Objects.requireNonNull(appointment)))
+        return Mono.defer(() -> validateBusinessHours(appointment))
+                .then(Mono.defer(() -> validatePsychologistAvailability(appointment)))
+                .then(Mono.defer(() -> validatePatientAvailability(appointment)))
+                .then(Mono.defer(() -> validateRoomAvailability(appointment)))
+                .then(Mono.defer(() -> appointmentRepository.save(java.util.Objects.requireNonNull(appointment))))
                 .onErrorMap(DataIntegrityViolationException.class, this::mapConstraintViolation);
     }
 
