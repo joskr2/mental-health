@@ -1,0 +1,10 @@
+{
+  "properties": [
+    {
+      "name": "security.refresh-token.max-sessions",
+      "type": "java.lang.Integer",
+      "description": "Número máximo de sesiones activas por usuario. 0 = sin límite.",
+      "defaultValue": 5
+    }
+  ]
+}

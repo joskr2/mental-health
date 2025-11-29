@@ -1,5 +1,6 @@
 package com.clinica.mentalhealth;
 
+import com.clinica.mentalhealth.config.SecurityProperties;
 import com.clinica.mentalhealth.domain.Role;
 import com.clinica.mentalhealth.domain.User;
 import com.clinica.mentalhealth.repository.UserRepository;
@@ -7,9 +8,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.context.annotation.Bean;
 import org.springframework.r2dbc.core.DatabaseClient;
+import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import java.util.Objects;
@@ -17,6 +20,8 @@ import java.util.Objects;
 @Slf4j
 @SpringBootApplication
 @EnableCaching
+@EnableScheduling
+@EnableConfigurationProperties(SecurityProperties.class)
 public class MentalHealthApplication {
 
     private static final String BIND_EMAIL = "email";
