@@ -44,8 +44,7 @@ public class GlobalExceptionHandler {
     // 5. Error 500: Cualquier otra cosa que no esperábamos
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGeneral(Exception ex, ServerWebExchange exchange) {
-        // En producción, aquí harías log del error real: log.error("Error", ex);
-        ex.printStackTrace(); // Para que lo veas en consola mientras desarrollas
+        ex.printStackTrace();
         return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, "Ocurrió un error inesperado en el servidor.", exchange);
     }
 

@@ -24,6 +24,7 @@ public class JwtAuthenticationFilter implements WebFilter {
     public JwtAuthenticationFilter(JwtService jwtService) {
         this.jwtService = jwtService;
     }
+
     @Override
     @NonNull
     @SuppressWarnings("null")

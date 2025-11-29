@@ -68,7 +68,7 @@ public class AiToolsConfig {
             try {
                 // Generar contraseña temporal segura (no viene del LLM por seguridad)
                 String tempPassword = generateSecureTemporaryPassword();
-                
+
                 var doc = service.createPsychologist(
                         request.name(),
                         request.specialty(),
@@ -77,18 +77,18 @@ public class AiToolsConfig {
                         request.dni(),
                         request.username(),
                         tempPassword).block();
-                
+
                 // Retornar la contraseña temporal para que el admin la comunique
                 return String.format(
-                    "ÉXITO: Psicólogo '%s' creado con ID %d. " +
-                    "IMPORTANTE: Contraseña temporal: %s (debe cambiarla en el primer inicio de sesión)",
-                    request.name(), doc.id(), tempPassword);
+                        "ÉXITO: Psicólogo '%s' creado con ID %d. " +
+                                "IMPORTANTE: Contraseña temporal: %s (debe cambiarla en el primer inicio de sesión)",
+                        request.name(), doc.id(), tempPassword);
             } catch (Exception e) {
                 return ERROR_PREFIX + e.getMessage();
             }
         };
     }
-    
+
     /**
      * Genera una contraseña temporal segura.
      * En producción, considerar usar SecureRandom con más entropía.
