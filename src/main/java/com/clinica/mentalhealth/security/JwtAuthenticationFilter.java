@@ -1,6 +1,7 @@
 package com.clinica.mentalhealth.security;
 
 import io.jsonwebtoken.Claims;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
 import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -14,6 +15,7 @@ import reactor.core.publisher.Mono;
 
 import java.util.List;
 
+@Slf4j
 @Component
 public class JwtAuthenticationFilter implements WebFilter {
 
@@ -52,7 +54,9 @@ public class JwtAuthenticationFilter implements WebFilter {
                         .contextWrite(ReactiveSecurityContextHolder.withAuthentication(authentication));
             }
         } catch (Exception e) {
-            // Si el token falla, limpiamos contexto
+            // Log del error para debugging (sin exponer el token)
+            log.debug("JWT authentication failed: {}", e.getMessage());
+            log.trace("JWT auth error details", e);
         }
 
         return chain.filter(exchange);

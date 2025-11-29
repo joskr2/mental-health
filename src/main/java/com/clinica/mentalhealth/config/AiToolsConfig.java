@@ -62,10 +62,13 @@ public class AiToolsConfig {
     // --- HERRAMIENTAS DE INFRAESTRUCTURA/STAFF (SOLO ADMIN) ---
 
     @Bean
-    @Description("Contratar un nuevo Psicólogo. Requiere nombre, especialidad, email, teléfono, DNI, username y password.")
+    @Description("Contratar un nuevo Psicólogo. Requiere nombre, especialidad, email, teléfono, DNI y username. La contraseña se genera automáticamente.")
     public Function<CreatePsychologistRequest, String> createPsychologistTool(PsychologistService service) {
         return request -> {
             try {
+                // Generar contraseña temporal segura (no viene del LLM por seguridad)
+                String tempPassword = generateSecureTemporaryPassword();
+                
                 var doc = service.createPsychologist(
                         request.name(),
                         request.specialty(),
@@ -73,12 +76,32 @@ public class AiToolsConfig {
                         request.phone(),
                         request.dni(),
                         request.username(),
-                        request.password()).block();
-                return "ÉXITO: Psicólogo creado con ID " + doc.id();
+                        tempPassword).block();
+                
+                // Retornar la contraseña temporal para que el admin la comunique
+                return String.format(
+                    "ÉXITO: Psicólogo '%s' creado con ID %d. " +
+                    "IMPORTANTE: Contraseña temporal: %s (debe cambiarla en el primer inicio de sesión)",
+                    request.name(), doc.id(), tempPassword);
             } catch (Exception e) {
                 return ERROR_PREFIX + e.getMessage();
             }
         };
+    }
+    
+    /**
+     * Genera una contraseña temporal segura.
+     * En producción, considerar usar SecureRandom con más entropía.
+     */
+    private String generateSecureTemporaryPassword() {
+        // Caracteres permitidos (evitando ambiguos como 0/O, 1/l)
+        String chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$%";
+        java.security.SecureRandom random = new java.security.SecureRandom();
+        StringBuilder password = new StringBuilder(12);
+        for (int i = 0; i < 12; i++) {
+            password.append(chars.charAt(random.nextInt(chars.length())));
+        }
+        return password.toString();
     }
 
     @Bean
