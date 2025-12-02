@@ -20,7 +20,11 @@ SET timezone = 'America/Lima';
 
 -- === Bajar el umbral de similitud para ser más tolerante ===
 -- Por defecto es 0.3. Lo bajamos a 0.1 para que "Gonsales" encuentre "González"
-ALTER DATABASE mental_clinic SET pg_trgm.similarity_threshold = 0.1;
+-- Usamos current_database() para que funcione con cualquier nombre de BD
+DO $$
+BEGIN
+    EXECUTE format('ALTER DATABASE %I SET pg_trgm.similarity_threshold = 0.1', current_database());
+END $$;
 
 -- Log de inicialización
 DO $$

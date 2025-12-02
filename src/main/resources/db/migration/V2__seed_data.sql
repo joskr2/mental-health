@@ -6,34 +6,34 @@
 -- In production, this migration should be skipped or modified.
 -- ============================================
 
--- Note: Passwords are BCrypt encoded. Default password is '123' for all users.
--- BCrypt hash for '123': $2a$10$N9qo8uLOickgx2ZMRZoMy.MqrqBuBjZa/L5E6Nxj1NQgPHpR1CGKO
+-- Note: Passwords are BCrypt encoded. Default password is 'password' for all users.
+-- BCrypt hash for 'password': $2a$10$dXJ3SW6G7P50lGmMkkmwe.20cQQubK3.HZWzG3YB1tlRy.fqvM/BG
 
 -- === Insert Admin User ===
 INSERT INTO "users" (username, password, role)
-VALUES ('admin', '$2a$10$N9qo8uLOickgx2ZMRZoMy.MqrqBuBjZa/L5E6Nxj1NQgPHpR1CGKO', 'ROLE_ADMIN')
+VALUES ('admin', '$2a$10$dXJ3SW6G7P50lGmMkkmwe.20cQQubK3.HZWzG3YB1tlRy.fqvM/BG', 'ROLE_ADMIN')
 ON CONFLICT (username) DO NOTHING;
 
 -- === Insert Psychologist Users ===
 INSERT INTO "users" (username, password, role)
-VALUES ('doc', '$2a$10$N9qo8uLOickgx2ZMRZoMy.MqrqBuBjZa/L5E6Nxj1NQgPHpR1CGKO', 'ROLE_PSYCHOLOGIST')
+VALUES ('doc', '$2a$10$dXJ3SW6G7P50lGmMkkmwe.20cQQubK3.HZWzG3YB1tlRy.fqvM/BG', 'ROLE_PSYCHOLOGIST')
 ON CONFLICT (username) DO NOTHING;
 
 INSERT INTO "users" (username, password, role)
-VALUES ('dr.martinez', '$2a$10$N9qo8uLOickgx2ZMRZoMy.MqrqBuBjZa/L5E6Nxj1NQgPHpR1CGKO', 'ROLE_PSYCHOLOGIST')
+VALUES ('dr.martinez', '$2a$10$dXJ3SW6G7P50lGmMkkmwe.20cQQubK3.HZWzG3YB1tlRy.fqvM/BG', 'ROLE_PSYCHOLOGIST')
 ON CONFLICT (username) DO NOTHING;
 
 -- === Insert Patient Users ===
 INSERT INTO "users" (username, password, role)
-VALUES ('pepe@test.com', '$2a$10$N9qo8uLOickgx2ZMRZoMy.MqrqBuBjZa/L5E6Nxj1NQgPHpR1CGKO', 'ROLE_PATIENT')
+VALUES ('pepe@test.com', '$2a$10$dXJ3SW6G7P50lGmMkkmwe.20cQQubK3.HZWzG3YB1tlRy.fqvM/BG', 'ROLE_PATIENT')
 ON CONFLICT (username) DO NOTHING;
 
 INSERT INTO "users" (username, password, role)
-VALUES ('grillo@test.com', '$2a$10$N9qo8uLOickgx2ZMRZoMy.MqrqBuBjZa/L5E6Nxj1NQgPHpR1CGKO', 'ROLE_PATIENT')
+VALUES ('grillo@test.com', '$2a$10$dXJ3SW6G7P50lGmMkkmwe.20cQQubK3.HZWzG3YB1tlRy.fqvM/BG', 'ROLE_PATIENT')
 ON CONFLICT (username) DO NOTHING;
 
 INSERT INTO "users" (username, password, role)
-VALUES ('maria@test.com', '$2a$10$N9qo8uLOickgx2ZMRZoMy.MqrqBuBjZa/L5E6Nxj1NQgPHpR1CGKO', 'ROLE_PATIENT')
+VALUES ('maria@test.com', '$2a$10$dXJ3SW6G7P50lGmMkkmwe.20cQQubK3.HZWzG3YB1tlRy.fqvM/BG', 'ROLE_PATIENT')
 ON CONFLICT (username) DO NOTHING;
 
 -- === Insert Psychologists ===
@@ -123,7 +123,7 @@ DO $$
 BEGIN
     RAISE NOTICE 'V2__seed_data.sql: Seed data inserted successfully';
     RAISE NOTICE 'Test credentials:';
-    RAISE NOTICE '  - Admin: username=admin, password=123';
-    RAISE NOTICE '  - Doctor: username=doc, password=123';
-    RAISE NOTICE '  - Patient: username=pepe@test.com, password=123';
+    RAISE NOTICE '  - Admin: username=admin, password=password';
+    RAISE NOTICE '  - Doctor: username=doc, password=password';
+    RAISE NOTICE '  - Patient: username=pepe@test.com, password=password';
 END $$;

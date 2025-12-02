@@ -25,51 +25,73 @@ import reactor.core.publisher.Mono;
 @Order(Ordered.LOWEST_PRECEDENCE)
 public class ApiVersionFilter implements WebFilter {
 
-    private static final String CURRENT_VERSION = "1.0.0";
-    private static final String DEPRECATED_PATH_PREFIX = "/api/";
-    private static final String VERSIONED_PATH_PREFIX = "/api/v";
+  private static final String CURRENT_VERSION = "1.0.0";
+  private static final String DEPRECATED_PATH_PREFIX = "/api/";
+  private static final String VERSIONED_PATH_PREFIX = "/api/v";
 
-    @Override
-    @NonNull
-    public Mono<Void> filter(@NonNull ServerWebExchange exchange, @NonNull WebFilterChain chain) {
-        String path = exchange.getRequest().getPath().value();
+  @Override
+  @NonNull
+  public Mono<Void> filter(
+    @NonNull ServerWebExchange exchange,
+    @NonNull WebFilterChain chain
+  ) {
+    String path = exchange.getRequest().getPath().value();
 
-        // Solo procesar paths de la API
-        if (!path.startsWith("/api")) {
-            return chain.filter(exchange);
-        }
-
-        return chain.filter(exchange)
-            .doFinally(signalType -> {
-                HttpHeaders headers = exchange.getResponse().getHeaders();
-
-                // Siempre añadir versión actual
-                headers.add(ApiVersion.Headers.API_VERSION, CURRENT_VERSION);
-
-                // Detectar si es un path legacy (sin versión)
-                if (isLegacyPath(path)) {
-                    headers.add(ApiVersion.Headers.API_DEPRECATED, "true");
-                    headers.add(ApiVersion.Headers.API_SUNSET_DATE, "2026-06-30");
-                    headers.add(ApiVersion.Headers.API_SUCCESSOR, convertToVersionedPath(path));
-                }
-            });
+    // Solo procesar paths de la API
+    if (!path.startsWith("/api")) {
+      return chain.filter(exchange);
     }
 
-    /**
-     * Verifica si el path es legacy (sin versión).
-     * Un path legacy comienza con /api/ pero no con /api/v
-     */
-    private boolean isLegacyPath(String path) {
-        return path.startsWith(DEPRECATED_PATH_PREFIX) &&
-               !path.startsWith(VERSIONED_PATH_PREFIX) &&
-               !path.startsWith("/api/actuator"); // Excluir actuator
+    // Registrar callback para añadir headers antes de que se envíe la respuesta
+    exchange
+      .getResponse()
+      .beforeCommit(() -> {
+        addVersionHeaders(exchange, path);
+        return Mono.empty();
+      });
+
+    return chain.filter(exchange);
+  }
+
+  /**
+   * Añade los headers de versionado a la respuesta.
+   */
+  private void addVersionHeaders(ServerWebExchange exchange, String path) {
+    HttpHeaders headers = exchange.getResponse().getHeaders();
+
+    // Siempre añadir versión actual (solo si no existe ya)
+    if (!headers.containsKey(ApiVersion.Headers.API_VERSION)) {
+      headers.set(ApiVersion.Headers.API_VERSION, CURRENT_VERSION);
     }
 
-    /**
-     * Convierte un path legacy al equivalente versionado.
-     * Ejemplo: /api/patients -> /api/v1/patients
-     */
-    private String convertToVersionedPath(String legacyPath) {
-        return legacyPath.replace("/api/", "/api/v1/");
+    // Detectar si es un path legacy (sin versión)
+    if (isLegacyPath(path)) {
+      headers.set(ApiVersion.Headers.API_DEPRECATED, "true");
+      headers.set(ApiVersion.Headers.API_SUNSET_DATE, "2026-06-30");
+      headers.set(
+        ApiVersion.Headers.API_SUCCESSOR,
+        convertToVersionedPath(path)
+      );
     }
+  }
+
+  /**
+   * Verifica si el path es legacy (sin versión).
+   * Un path legacy comienza con /api/ pero no con /api/v
+   */
+  private boolean isLegacyPath(String path) {
+    return (
+      path.startsWith(DEPRECATED_PATH_PREFIX) &&
+      !path.startsWith(VERSIONED_PATH_PREFIX) &&
+      !path.startsWith("/api/actuator")
+    ); // Excluir actuator
+  }
+
+  /**
+   * Convierte un path legacy al equivalente versionado.
+   * Ejemplo: /api/patients -> /api/v1/patients
+   */
+  private String convertToVersionedPath(String legacyPath) {
+    return legacyPath.replace("/api/", "/api/v1/");
+  }
 }

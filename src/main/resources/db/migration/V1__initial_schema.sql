@@ -216,8 +216,8 @@ CREATE TRIGGER update_appointments_updated_at
     EXECUTE FUNCTION update_updated_at_column();
 
 -- === Configuration ===
--- Set similarity threshold for fuzzy search
-ALTER DATABASE mental_clinic SET pg_trgm.similarity_threshold = 0.1;
+-- Note: pg_trgm.similarity_threshold should be configured in init-db scripts
+-- or via ALTER DATABASE in the init container, not here (database name varies)
 
 -- Log successful migration
 DO $$
