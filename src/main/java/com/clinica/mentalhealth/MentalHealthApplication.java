@@ -1,9 +1,6 @@
 package com.clinica.mentalhealth;
 
 import com.clinica.mentalhealth.config.SecurityProperties;
-import com.clinica.mentalhealth.domain.Role;
-import com.clinica.mentalhealth.domain.User;
-import com.clinica.mentalhealth.repository.UserRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
@@ -11,12 +8,25 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.context.annotation.Bean;
-import org.springframework.r2dbc.core.DatabaseClient;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import java.util.Objects;
 
+/**
+ * Aplicación principal de Mental Health Clinic API.
+ *
+ * Esta es una API REST reactiva para gestión de clínica de salud mental
+ * con asistente de IA integrado.
+ *
+ * Características:
+ * - WebFlux (programación reactiva)
+ * - R2DBC (acceso reactivo a PostgreSQL)
+ * - Spring Security con JWT (access + refresh tokens)
+ * - Spring AI con DeepSeek para asistente clínico
+ * - Flyway para migraciones de base de datos
+ * - Rate limiting para protección de la API
+ * - Logging estructurado (JSON en producción)
+ */
 @Slf4j
 @SpringBootApplication
 @EnableCaching
@@ -24,82 +34,81 @@ import java.util.Objects;
 @EnableConfigurationProperties(SecurityProperties.class)
 public class MentalHealthApplication {
 
-    private static final String BIND_EMAIL = "email";
-    private static final String BIND_PHONE = "phone";
+  public static void main(String[] args) {
+    SpringApplication.run(MentalHealthApplication.class, args);
+  }
 
-    public static void main(String[] args) {
-        SpringApplication.run(MentalHealthApplication.class, args);
-    }
+  @Bean
+  public PasswordEncoder passwordEncoder() {
+    return new BCryptPasswordEncoder();
+  }
 
-    @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
-    }
-
-    @Bean
-    @org.springframework.context.annotation.Profile("!test")
-    public CommandLineRunner seedData(
-            UserRepository userRepo,
-            DatabaseClient databaseClient,
-            PasswordEncoder encoder) {
-
-        return args -> {
-            log.info("🌱 INICIANDO CARGA DE DATOS...");
-
-            // 1. Limpiar tablas (Orden inverso a las Foreign Keys)
-            databaseClient.sql("DELETE FROM \"appointments\"").fetch().rowsUpdated().block();
-            databaseClient.sql("DELETE FROM \"patients\"").fetch().rowsUpdated().block();
-            databaseClient.sql("DELETE FROM \"psychologists\"").fetch().rowsUpdated().block();
-            databaseClient.sql("DELETE FROM \"rooms\"").fetch().rowsUpdated().block();
-            databaseClient.sql("DELETE FROM \"users\"").fetch().rowsUpdated().block();
-
-            // 2. Crear Usuarios (Identity Layer)
-            var admin = userRepo.save(new User(null, "admin", encoder.encode("123"), Role.ROLE_ADMIN)).block();
-            var doc = userRepo.save(new User(null, "doc", encoder.encode("123"), Role.ROLE_PSYCHOLOGIST)).block();
-            var pepe = userRepo.save(new User(null, "pepe", encoder.encode("123"), Role.ROLE_PATIENT)).block();
-            var grillo = userRepo.save(new User(null, "grillo", encoder.encode("123"), Role.ROLE_PATIENT)).block();
-
-            log.info("👤 Usuarios creados: Admin(ID={}), Doc(ID={}), Pepe(ID={})", admin.id(), doc.id(), pepe.id());
-
-            // 3. Insertar Datos de Negocio (Business Layer) sincronizados con los IDs de
-            // Usuario
-
-            // Insertar Psicólogo
-            databaseClient
-                    .sql("INSERT INTO \"psychologists\" (id, name, specialty, email, phone, dni) VALUES (:id, :name, :spec, :email, :phone, :dni)")
-                    .bind("id", Objects.requireNonNull(doc.id()))
-                    .bind("name", "Dr. Strange")
-                    .bind("spec", "Misticismo")
-                    .bind(BIND_EMAIL, "strange@clinic.com")
-                    .bind(BIND_PHONE, "+51999111222")
-                    .bind("dni", "99887766")
-                    .fetch().rowsUpdated().block();
-
-            // Insertar Paciente
-            databaseClient.sql("INSERT INTO \"patients\" (id, name, email, phone) VALUES (:id, :name, :email, :phone)")
-                    .bind("id", Objects.requireNonNull(pepe.id()))
-                    .bind("name", "Pepe Grillo")
-                    .bind(BIND_EMAIL, "pepe@test.com")
-                    .bind(BIND_PHONE, "+51999333444")
-                    .fetch().rowsUpdated().block();
-
-            databaseClient.sql(
-                    "INSERT INTO \"patients\" (id, name, email, phone, dni) VALUES (:id, :name, :email, :phone, :dni)")
-                    .bind("id", Objects.requireNonNull(grillo.id()))
-                    .bind("name", "Grillo Pepito")
-                    .bind(BIND_EMAIL, "grillo@test.com")
-                    .bind(BIND_PHONE, "+51999555666")
-                    .bind("dni", "12345678")
-                    .fetch().rowsUpdated().block();
-
-            // Insertar Sala
-            databaseClient.sql("INSERT INTO \"rooms\" (id, name) VALUES (1, 'Sala Suprema')")
-                    .fetch().rowsUpdated().block();
-
-            log.info("✅ DATOS MAESTROS CARGADOS: Listo para probar IA.");
-            log.info("👉 Login Admin: username='admin', pass='123'");
-            log.info("👉 Login Doc:   username='doc',   pass='123'");
-            log.info("👉 Login Pepe:  username='pepe',  pass='123'");
-        };
-    }
+  /**
+   * CommandLineRunner que se ejecuta al iniciar la aplicación.
+   *
+   * NOTA: Los datos de prueba ahora se gestionan con Flyway (V2__seed_data.sql).
+   * Este runner solo muestra información útil para desarrollo.
+   *
+   * En el perfil "test", este bean no se carga para evitar conflictos con los tests.
+   */
+  @Bean
+  @org.springframework.context.annotation.Profile("!test")
+  public CommandLineRunner startupInfo() {
+    return args -> {
+      log.info(
+        "╔══════════════════════════════════════════════════════════════╗"
+      );
+      log.info(
+        "║       🏥 Mental Health Clinic API - Started Successfully     ║"
+      );
+      log.info(
+        "╠══════════════════════════════════════════════════════════════╣"
+      );
+      log.info(
+        "║  📋 Database migrations managed by Flyway                    ║"
+      );
+      log.info(
+        "║  🔐 JWT Authentication enabled                               ║"
+      );
+      log.info(
+        "║  🤖 AI Assistant ready (DeepSeek)                            ║"
+      );
+      log.info(
+        "║  🚦 Rate limiting active                                     ║"
+      );
+      log.info(
+        "╠══════════════════════════════════════════════════════════════╣"
+      );
+      log.info(
+        "║  Test Credentials (Development):                             ║"
+      );
+      log.info(
+        "║    👤 Admin:    username=admin, password=123                 ║"
+      );
+      log.info(
+        "║    👨‍⚕️ Doctor:   username=doc, password=123                   ║"
+      );
+      log.info(
+        "║    🧑 Patient:  username=pepe@test.com, password=123         ║"
+      );
+      log.info(
+        "╠══════════════════════════════════════════════════════════════╣"
+      );
+      log.info(
+        "║  Endpoints:                                                  ║"
+      );
+      log.info(
+        "║    📖 Swagger UI:  http://localhost:8080/swagger-ui.html     ║"
+      );
+      log.info(
+        "║    ❤️  Health:      http://localhost:8080/actuator/health    ║"
+      );
+      log.info(
+        "║    🔑 Login:       POST /api/auth/login                      ║"
+      );
+      log.info(
+        "╚══════════════════════════════════════════════════════════════╝"
+      );
+    };
+  }
 }
