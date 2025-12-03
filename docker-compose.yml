@@ -54,6 +54,7 @@ services:
       SPRING_R2DBC_URL: r2dbc:postgresql://postgres:5432/${POSTGRES_DB:-mental_clinic}
       SPRING_R2DBC_USERNAME: ${POSTGRES_USER:-clinic_user}
       SPRING_R2DBC_PASSWORD: ${POSTGRES_PASSWORD:-clinic_secret_2024}
+      SPRING_FLYWAY_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-mental_clinic}
       DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
       TZ: America/Lima
       JAVA_OPTS: >-
@@ -82,10 +83,10 @@ services:
       resources:
         limits:
           cpus: "1.0"
-          memory: 512M
+          memory: 768M
         reservations:
           cpus: "0.5"
-          memory: 256M
+          memory: 384M
     networks:
       - mental-health-network
     labels:
@@ -107,6 +108,7 @@ services:
       SPRING_R2DBC_URL: r2dbc:postgresql://postgres:5432/${POSTGRES_DB:-mental_clinic}
       SPRING_R2DBC_USERNAME: ${POSTGRES_USER:-clinic_user}
       SPRING_R2DBC_PASSWORD: ${POSTGRES_PASSWORD:-clinic_secret_2024}
+      SPRING_FLYWAY_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-mental_clinic}
       DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY}
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRATION: ${JWT_EXPIRATION:-86400000}
