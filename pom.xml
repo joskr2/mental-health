@@ -104,10 +104,10 @@
             <artifactId>spring-ai-openai-spring-boot-starter</artifactId>
         </dependency>
 
-        <!-- OpenAPI Documentation -->
+        <!-- OpenAPI Documentation (sin Swagger UI - usamos Scalar) -->
         <dependency>
             <groupId>org.springdoc</groupId>
-            <artifactId>springdoc-openapi-starter-webflux-ui</artifactId>
+            <artifactId>springdoc-openapi-starter-webflux-api</artifactId>
             <version>${springdoc.version}</version>
         </dependency>
 

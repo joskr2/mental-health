@@ -1,0 +1,1637 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Mental Health Clinic API",
+    "description": "API reactiva para gestión de citas en clínica de salud mental. Incluye autenticación JWT con refresh tokens, validación de horarios, gestión de conflictos, y asistente de IA clínico.\n\n## Autenticación\n\nLa API utiliza JWT Bearer tokens. Para obtener un token:\n1. Realiza POST a `/api/auth/login` con credenciales\n2. Usa el `accessToken` en el header `Authorization: Bearer <token>`\n3. Cuando expire, usa `/api/auth/refresh` con el `refreshToken`\n\n## Credenciales de Prueba (Desarrollo)\n\n| Rol | Usuario | Contraseña |\n|-----|---------|------------|\n| Admin | admin | password |\n| Psicólogo | doc | password |\n| Paciente | pepe@test.com | password |",
+    "version": "1.0.0",
+    "contact": {
+      "name": "Mental Health Team",
+      "email": "support@mentalhealth.com"
+    },
+    "license": {
+      "name": "Private",
+      "url": "https://mentalhealth.com/license"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8080",
+      "description": "Servidor de Desarrollo"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Authentication",
+      "description": "Autenticación con JWT (access y refresh tokens) con seguridad máxima"
+    },
+    {
+      "name": "Pacientes",
+      "description": "API para gestión de pacientes"
+    },
+    {
+      "name": "Psicólogos",
+      "description": "API para gestión de psicólogos (Solo Admin)"
+    },
+    {
+      "name": "Appointments",
+      "description": "Gestión de citas médicas"
+    },
+    {
+      "name": "Salas",
+      "description": "Gestión de salas/consultorios de la clínica"
+    },
+    {
+      "name": "Agente IA",
+      "description": "Chat con el asistente clínico de inteligencia artificial"
+    }
+  ],
+  "paths": {
+    "/api/auth/login": {
+      "post": {
+        "tags": ["Authentication"],
+        "summary": "Iniciar sesión",
+        "description": "Autentica usuario y devuelve access token (30 min) y refresh token (14 días). Crea una sesión con estado para máxima seguridad.",
+        "operationId": "login",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              },
+              "examples": {
+                "admin": {
+                  "summary": "Login como Admin",
+                  "value": {
+                    "username": "admin",
+                    "password": "password"
+                  }
+                },
+                "doctor": {
+                  "summary": "Login como Psicólogo",
+                  "value": {
+                    "username": "doc",
+                    "password": "password"
+                  }
+                },
+                "patient": {
+                  "summary": "Login como Paciente",
+                  "value": {
+                    "username": "pepe@test.com",
+                    "password": "password"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Login exitoso, tokens generados",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos de entrada inválidos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Credenciales inválidas"
+          },
+          "429": {
+            "description": "Demasiados intentos. Rate limit: 10 req/min"
+          }
+        }
+      }
+    },
+    "/api/auth/refresh": {
+      "post": {
+        "tags": ["Authentication"],
+        "summary": "Refrescar tokens",
+        "description": "Usa el refresh token para obtener un nuevo par de tokens. El token usado se invalida inmediatamente (one-time use). Si se detecta reutilización de un token ya usado, TODAS las sesiones del usuario son revocadas por seguridad.",
+        "operationId": "refresh",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefreshTokenRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Tokens refrescados exitosamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos de entrada inválidos"
+          },
+          "401": {
+            "description": "Refresh token inválido, expirado o ya utilizado"
+          }
+        }
+      }
+    },
+    "/api/auth/logout": {
+      "post": {
+        "tags": ["Authentication"],
+        "summary": "Cerrar sesión",
+        "description": "Revoca el refresh token actual. Si logoutAll=true, cierra sesión en TODOS los dispositivos.",
+        "operationId": "logout",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LogoutRequest"
+              },
+              "examples": {
+                "single": {
+                  "summary": "Cerrar sesión actual",
+                  "value": {
+                    "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                    "logoutAll": false
+                  }
+                },
+                "all": {
+                  "summary": "Cerrar todas las sesiones",
+                  "value": {
+                    "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                    "logoutAll": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Sesión cerrada exitosamente"
+          },
+          "400": {
+            "description": "Datos de entrada inválidos"
+          },
+          "401": {
+            "description": "Token inválido"
+          }
+        }
+      }
+    },
+    "/api/auth/sessions": {
+      "get": {
+        "tags": ["Authentication"],
+        "summary": "Ver sesiones activas",
+        "description": "Lista todas las sesiones activas del usuario autenticado",
+        "operationId": "getActiveSessions",
+        "security": [{"bearerAuth": []}],
+        "responses": {
+          "200": {
+            "description": "Lista de sesiones activas",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SessionInfo"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado"
+          }
+        }
+      }
+    },
+    "/api/auth/sessions/{sessionId}": {
+      "delete": {
+        "tags": ["Authentication"],
+        "summary": "Revocar sesión específica",
+        "description": "Cierra sesión en un dispositivo específico por su ID de sesión",
+        "operationId": "revokeSession",
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "description": "ID de la sesión a revocar",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Sesión revocada"
+          },
+          "404": {
+            "description": "Sesión no encontrada"
+          }
+        }
+      }
+    },
+    "/api/patients": {
+      "get": {
+        "tags": ["Pacientes"],
+        "summary": "Listar todos los pacientes",
+        "description": "Solo accesible por administradores",
+        "operationId": "getAllPatients",
+        "security": [{"bearerAuth": []}],
+        "responses": {
+          "200": {
+            "description": "Lista de pacientes obtenida exitosamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Patient"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado"
+          },
+          "403": {
+            "description": "Acceso denegado - Solo ADMIN"
+          }
+        }
+      },
+      "post": {
+        "tags": ["Pacientes"],
+        "summary": "Crear nuevo paciente",
+        "description": "Solo accesible por administradores",
+        "operationId": "createPatient",
+        "security": [{"bearerAuth": []}],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePatientRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Paciente creado exitosamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Patient"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos inválidos o DNI duplicado"
+          },
+          "403": {
+            "description": "Acceso denegado"
+          }
+        }
+      }
+    },
+    "/api/patients/{id}": {
+      "get": {
+        "tags": ["Pacientes"],
+        "summary": "Obtener paciente por ID",
+        "description": "Accesible por administradores y psicólogos",
+        "operationId": "getPatientById",
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "ID del paciente",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paciente encontrado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Patient"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Paciente no encontrado"
+          },
+          "403": {
+            "description": "Acceso denegado"
+          }
+        }
+      },
+      "put": {
+        "tags": ["Pacientes"],
+        "summary": "Actualizar paciente",
+        "description": "Solo accesible por administradores",
+        "operationId": "updatePatient",
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "ID del paciente",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePatientRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Paciente actualizado exitosamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Patient"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Paciente no encontrado"
+          },
+          "400": {
+            "description": "Datos inválidos o DNI duplicado"
+          },
+          "403": {
+            "description": "Acceso denegado"
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Pacientes"],
+        "summary": "Eliminar paciente",
+        "description": "Solo accesible por administradores",
+        "operationId": "deletePatient",
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "ID del paciente",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Paciente eliminado exitosamente"
+          },
+          "404": {
+            "description": "Paciente no encontrado"
+          },
+          "403": {
+            "description": "Acceso denegado"
+          }
+        }
+      }
+    },
+    "/api/patients/search": {
+      "get": {
+        "tags": ["Pacientes"],
+        "summary": "Buscar pacientes",
+        "description": "Búsqueda híbrida por DNI (números) o nombre (texto). Usa trigram para búsquedas similares.",
+        "operationId": "searchPatients",
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {
+            "name": "query",
+            "in": "query",
+            "required": true,
+            "description": "Término de búsqueda (DNI o nombre, min 2 caracteres)",
+            "schema": {
+              "type": "string",
+              "minLength": 2,
+              "maxLength": 100
+            },
+            "examples": {
+              "byDni": {
+                "summary": "Buscar por DNI",
+                "value": "12345678"
+              },
+              "byName": {
+                "summary": "Buscar por nombre",
+                "value": "Juan"
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Resultados de búsqueda",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Patient"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Query inválida (muy corta o muy larga)"
+          },
+          "403": {
+            "description": "Acceso denegado - Solo ADMIN y PSYCHOLOGIST"
+          }
+        }
+      }
+    },
+    "/api/psychologists": {
+      "get": {
+        "tags": ["Psicólogos"],
+        "summary": "Listar todos los psicólogos",
+        "description": "Directorio completo de personal",
+        "operationId": "getAllPsychologists",
+        "security": [{"bearerAuth": []}],
+        "responses": {
+          "200": {
+            "description": "Lista de psicólogos obtenida exitosamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Psychologist"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Acceso denegado - Solo administradores"
+          }
+        }
+      },
+      "post": {
+        "tags": ["Psicólogos"],
+        "summary": "Contratar nuevo psicólogo",
+        "description": "Crea usuario (login) y perfil profesional con el mismo ID. El psicólogo podrá hacer login con el username y password proporcionados.",
+        "operationId": "createPsychologist",
+        "security": [{"bearerAuth": []}],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePsychologistDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Psicólogo creado exitosamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Psychologist"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos inválidos"
+          },
+          "403": {
+            "description": "Acceso denegado"
+          }
+        }
+      }
+    },
+    "/api/psychologists/{id}": {
+      "get": {
+        "tags": ["Psicólogos"],
+        "summary": "Obtener psicólogo por ID",
+        "description": "Ver detalle de un psicólogo",
+        "operationId": "getPsychologistById",
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "ID del psicólogo",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Psicólogo encontrado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Psychologist"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Psicólogo no encontrado"
+          },
+          "403": {
+            "description": "Acceso denegado"
+          }
+        }
+      },
+      "put": {
+        "tags": ["Psicólogos"],
+        "summary": "Actualizar datos profesionales",
+        "description": "Modifica nombre, especialidad, contacto y/o DNI",
+        "operationId": "updatePsychologist",
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "ID del psicólogo",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePsychologistDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Psicólogo actualizado exitosamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Psychologist"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Psicólogo no encontrado"
+          },
+          "403": {
+            "description": "Acceso denegado"
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Psicólogos"],
+        "summary": "Despedir/Eliminar psicólogo",
+        "description": "Elimina el perfil profesional y el usuario de acceso",
+        "operationId": "deletePsychologist",
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "ID del psicólogo",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Psicólogo eliminado exitosamente"
+          },
+          "404": {
+            "description": "Psicólogo no encontrado"
+          },
+          "403": {
+            "description": "Acceso denegado"
+          }
+        }
+      }
+    },
+    "/api/appointments": {
+      "get": {
+        "tags": ["Appointments"],
+        "summary": "Obtener mis citas",
+        "description": "Devuelve todas las citas si eres Admin, solo las propias si eres Psicólogo o Paciente",
+        "operationId": "getAllAppointments",
+        "security": [{"bearerAuth": []}],
+        "responses": {
+          "200": {
+            "description": "Lista de citas obtenida exitosamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Appointment"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado"
+          },
+          "403": {
+            "description": "Sin permisos"
+          }
+        }
+      },
+      "post": {
+        "tags": ["Appointments"],
+        "summary": "Crear cita",
+        "description": "Crea una nueva cita. Pacientes solo pueden crear para sí mismos. Validaciones: horario comercial (8:00-18:00 L-V), conflictos de sala/psicólogo/paciente.",
+        "operationId": "createAppointment",
+        "security": [{"bearerAuth": []}],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AppointmentCreate"
+              },
+              "example": {
+                "patientId": 1,
+                "psychologistId": 2,
+                "roomId": 1,
+                "startTime": "2025-01-15T10:00:00",
+                "endTime": "2025-01-15T11:00:00",
+                "notes": "Primera consulta"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Cita creada exitosamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Appointment"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos inválidos o fuera de horario comercial"
+          },
+          "403": {
+            "description": "Sin permisos para crear esta cita"
+          },
+          "409": {
+            "description": "Conflicto: sala, psicólogo o paciente ya tiene cita en ese horario"
+          }
+        }
+      }
+    },
+    "/api/appointments/{id}": {
+      "delete": {
+        "tags": ["Appointments"],
+        "summary": "Cancelar cita",
+        "description": "Cancela una cita existente. Admin puede cancelar cualquier cita, Psicólogo solo sus propias citas.",
+        "operationId": "cancelAppointment",
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "ID de la cita a cancelar",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Cita cancelada exitosamente"
+          },
+          "401": {
+            "description": "No autenticado"
+          },
+          "403": {
+            "description": "Sin permisos para cancelar esta cita"
+          },
+          "404": {
+            "description": "Cita no encontrada"
+          }
+        }
+      }
+    },
+    "/api/appointments/rooms/{roomId}/check": {
+      "get": {
+        "tags": ["Appointments"],
+        "summary": "Verificar disponibilidad de sala",
+        "description": "Permite ver si una sala está ocupada en una fecha específica. Solo para Admin y Psicólogos.",
+        "operationId": "checkRoomAvailability",
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {
+            "name": "roomId",
+            "in": "path",
+            "required": true,
+            "description": "ID de la sala a verificar",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "date",
+            "in": "query",
+            "required": true,
+            "description": "Fecha y hora para verificar disponibilidad (formato ISO)",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "example": "2025-01-15T10:00:00"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de conflictos (vacía si está disponible)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Appointment"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado"
+          },
+          "403": {
+            "description": "Sin permisos (solo Admin y Psicólogos)"
+          }
+        }
+      }
+    },
+    "/api/rooms": {
+      "get": {
+        "tags": ["Salas"],
+        "summary": "Listar salas",
+        "description": "Obtiene todas las salas disponibles",
+        "operationId": "getAllRooms",
+        "security": [{"bearerAuth": []}],
+        "responses": {
+          "200": {
+            "description": "Lista de salas",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Room"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado"
+          },
+          "403": {
+            "description": "Sin permisos - Solo ADMIN y PSYCHOLOGIST"
+          }
+        }
+      },
+      "post": {
+        "tags": ["Salas"],
+        "summary": "Crear sala",
+        "description": "Crea una nueva sala (solo administradores)",
+        "operationId": "createRoom",
+        "security": [{"bearerAuth": []}],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateRoomRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Sala creada exitosamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Room"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos inválidos"
+          },
+          "403": {
+            "description": "Sin permisos - Solo ADMIN"
+          }
+        }
+      }
+    },
+    "/api/rooms/{id}": {
+      "get": {
+        "tags": ["Salas"],
+        "summary": "Obtener sala por ID",
+        "description": "Busca una sala específica por su identificador",
+        "operationId": "getRoomById",
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "ID de la sala",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Sala encontrada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Room"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Sala no encontrada"
+          }
+        }
+      },
+      "put": {
+        "tags": ["Salas"],
+        "summary": "Actualizar sala",
+        "description": "Modifica el nombre de una sala existente",
+        "operationId": "updateRoom",
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "ID de la sala",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateRoomRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Sala actualizada exitosamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Room"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Sala no encontrada"
+          },
+          "403": {
+            "description": "Sin permisos - Solo ADMIN"
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Salas"],
+        "summary": "Eliminar sala",
+        "description": "Elimina una sala del sistema",
+        "operationId": "deleteRoom",
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "ID de la sala",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Sala eliminada exitosamente"
+          },
+          "404": {
+            "description": "Sala no encontrada"
+          },
+          "403": {
+            "description": "Sin permisos - Solo ADMIN"
+          }
+        }
+      }
+    },
+    "/api/agent/chat": {
+      "post": {
+        "tags": ["Agente IA"],
+        "summary": "Chat con IA",
+        "description": "Envía una consulta al agente clínico de IA (DeepSeek) y recibe una respuesta. El agente puede ayudar con consultas sobre salud mental, técnicas terapéuticas, y orientación clínica. Máximo 1000 caracteres por consulta.",
+        "operationId": "chatWithAgent",
+        "security": [{"bearerAuth": []}],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentChatRequest"
+              },
+              "examples": {
+                "general": {
+                  "summary": "Consulta general",
+                  "value": {
+                    "text": "¿Cuáles son las técnicas más efectivas para manejar la ansiedad?"
+                  }
+                },
+                "therapy": {
+                  "summary": "Sobre terapia",
+                  "value": {
+                    "text": "Explica brevemente la terapia cognitivo-conductual"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Respuesta del agente IA",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentChatResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Consulta vacía o demasiado larga (máx 1000 caracteres)"
+          },
+          "401": {
+            "description": "No autenticado"
+          },
+          "403": {
+            "description": "Sin permisos - Solo ADMIN y PSYCHOLOGIST"
+          },
+          "429": {
+            "description": "Rate limit excedido (20 req/min para IA)"
+          },
+          "503": {
+            "description": "Servicio de IA no disponible"
+          }
+        }
+      }
+    },
+    "/actuator/health": {
+      "get": {
+        "tags": ["System"],
+        "summary": "Health check",
+        "description": "Verifica el estado del servidor y sus dependencias (DB, disco, etc)",
+        "operationId": "healthCheck",
+        "responses": {
+          "200": {
+            "description": "Sistema saludable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Sistema con problemas"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "JWT access token obtenido desde /api/auth/login"
+      }
+    },
+    "schemas": {
+      "LoginRequest": {
+        "type": "object",
+        "required": ["username", "password"],
+        "properties": {
+          "username": {
+            "type": "string",
+            "description": "Nombre de usuario o email",
+            "example": "admin"
+          },
+          "password": {
+            "type": "string",
+            "description": "Contraseña",
+            "example": "password"
+          }
+        }
+      },
+      "LoginResponse": {
+        "type": "object",
+        "properties": {
+          "accessToken": {
+            "type": "string",
+            "description": "JWT access token (válido 30 minutos)"
+          },
+          "refreshToken": {
+            "type": "string",
+            "description": "JWT refresh token (válido 14 días, uso único)"
+          },
+          "tokenType": {
+            "type": "string",
+            "example": "Bearer"
+          },
+          "expiresIn": {
+            "type": "integer",
+            "description": "Segundos hasta expiración del access token",
+            "example": 1800
+          },
+          "userId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "ID del usuario autenticado"
+          },
+          "username": {
+            "type": "string",
+            "description": "Nombre de usuario"
+          },
+          "role": {
+            "type": "string",
+            "enum": ["ADMIN", "PSYCHOLOGIST", "PATIENT"],
+            "description": "Rol del usuario"
+          }
+        }
+      },
+      "RefreshTokenRequest": {
+        "type": "object",
+        "required": ["refreshToken"],
+        "properties": {
+          "refreshToken": {
+            "type": "string",
+            "description": "El refresh token obtenido en login"
+          }
+        }
+      },
+      "LogoutRequest": {
+        "type": "object",
+        "required": ["refreshToken"],
+        "properties": {
+          "refreshToken": {
+            "type": "string",
+            "description": "El refresh token a invalidar"
+          },
+          "logoutAll": {
+            "type": "boolean",
+            "default": false,
+            "description": "Si es true, cierra sesión en todos los dispositivos"
+          }
+        }
+      },
+      "SessionInfo": {
+        "type": "object",
+        "properties": {
+          "sessionId": {
+            "type": "string",
+            "description": "ID único de la sesión"
+          },
+          "deviceInfo": {
+            "type": "string",
+            "description": "Información del dispositivo (User-Agent)"
+          },
+          "ipAddress": {
+            "type": "string",
+            "description": "IP desde donde se creó la sesión"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Fecha de creación de la sesión"
+          },
+          "lastUsedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Última vez que se usó el token"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Fecha de expiración"
+          },
+          "current": {
+            "type": "boolean",
+            "description": "Si es la sesión actual"
+          }
+        }
+      },
+      "Patient": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64",
+            "description": "ID único del paciente"
+          },
+          "name": {
+            "type": "string",
+            "description": "Nombre completo",
+            "example": "Juan Pérez García"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "description": "Correo electrónico",
+            "example": "juan@email.com"
+          },
+          "phone": {
+            "type": "string",
+            "description": "Teléfono de contacto",
+            "example": "+51999888777"
+          },
+          "dni": {
+            "type": "string",
+            "description": "DNI (8 dígitos)",
+            "example": "12345678"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "CreatePatientRequest": {
+        "type": "object",
+        "required": ["name", "email", "phone", "dni"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 255,
+            "description": "Nombre completo del paciente",
+            "example": "Juan Pérez García"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 255,
+            "description": "Correo electrónico",
+            "example": "juan@email.com"
+          },
+          "phone": {
+            "type": "string",
+            "pattern": "^\\+?\\d{6,20}$",
+            "description": "Teléfono de contacto",
+            "example": "+51999888777"
+          },
+          "dni": {
+            "type": "string",
+            "pattern": "^\\d{8}$",
+            "description": "DNI del paciente (8 dígitos)",
+            "example": "12345678"
+          }
+        }
+      },
+      "UpdatePatientRequest": {
+        "type": "object",
+        "required": ["name", "email", "phone", "dni"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 255,
+            "description": "Nombre completo del paciente",
+            "example": "Juan Pérez García"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 255,
+            "description": "Correo electrónico",
+            "example": "juan.perez@email.com"
+          },
+          "phone": {
+            "type": "string",
+            "pattern": "^\\+?\\d{6,20}$",
+            "description": "Teléfono de contacto",
+            "example": "+51999888777"
+          },
+          "dni": {
+            "type": "string",
+            "pattern": "^\\d{8}$",
+            "description": "DNI del paciente (8 dígitos)",
+            "example": "12345678"
+          }
+        }
+      },
+      "Psychologist": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64",
+            "description": "ID único del psicólogo (mismo que user_id)"
+          },
+          "name": {
+            "type": "string",
+            "description": "Nombre completo",
+            "example": "Dra. María González"
+          },
+          "specialty": {
+            "type": "string",
+            "description": "Especialidad",
+            "example": "Psicología Clínica"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "maria.gonzalez@clinica.com"
+          },
+          "phone": {
+            "type": "string",
+            "example": "+51999111222"
+          },
+          "dni": {
+            "type": "string",
+            "example": "87654321"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "CreatePsychologistDto": {
+        "type": "object",
+        "required": ["name", "specialty", "email", "phone", "dni", "username", "password"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Nombre completo",
+            "example": "Dr. Carlos López"
+          },
+          "specialty": {
+            "type": "string",
+            "description": "Especialidad profesional",
+            "example": "Terapia Familiar"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "carlos.lopez@clinica.com"
+          },
+          "phone": {
+            "type": "string",
+            "example": "+51999333444"
+          },
+          "dni": {
+            "type": "string",
+            "pattern": "^\\d{8}$",
+            "example": "11223344"
+          },
+          "username": {
+            "type": "string",
+            "description": "Username para login",
+            "example": "carlos.lopez"
+          },
+          "password": {
+            "type": "string",
+            "minLength": 6,
+            "description": "Contraseña (mínimo 6 caracteres)",
+            "example": "SecurePass123"
+          }
+        }
+      },
+      "UpdatePsychologistDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Dr. Carlos López Méndez"
+          },
+          "specialty": {
+            "type": "string",
+            "example": "Terapia Cognitivo-Conductual"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "carlos.lopez@clinica.com"
+          },
+          "phone": {
+            "type": "string",
+            "example": "+51999333444"
+          },
+          "dni": {
+            "type": "string",
+            "example": "11223344"
+          }
+        }
+      },
+      "Appointment": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "patientId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "psychologistId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "roomId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "startTime": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Inicio de la cita (ISO 8601)",
+            "example": "2025-01-15T10:00:00"
+          },
+          "endTime": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Fin de la cita (ISO 8601)",
+            "example": "2025-01-15T11:00:00"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["SCHEDULED", "COMPLETED", "CANCELLED", "NO_SHOW"],
+            "example": "SCHEDULED"
+          },
+          "notes": {
+            "type": "string",
+            "description": "Notas adicionales"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "AppointmentCreate": {
+        "type": "object",
+        "required": ["patientId", "psychologistId", "roomId", "startTime", "endTime"],
+        "properties": {
+          "patientId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "ID del paciente"
+          },
+          "psychologistId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "ID del psicólogo"
+          },
+          "roomId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "ID de la sala"
+          },
+          "startTime": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Inicio (debe ser en horario comercial: 8:00-18:00 L-V)",
+            "example": "2025-01-15T10:00:00"
+          },
+          "endTime": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Fin de la cita",
+            "example": "2025-01-15T11:00:00"
+          },
+          "notes": {
+            "type": "string",
+            "description": "Notas adicionales (opcional)"
+          }
+        }
+      },
+      "Room": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "name": {
+            "type": "string",
+            "description": "Nombre de la sala",
+            "example": "Consultorio 1"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "CreateRoomRequest": {
+        "type": "object",
+        "required": ["name"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Nombre de la nueva sala",
+            "example": "Consultorio 3"
+          }
+        }
+      },
+      "UpdateRoomRequest": {
+        "type": "object",
+        "required": ["name"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Nuevo nombre de la sala",
+            "example": "Sala de Terapia Grupal"
+          }
+        }
+      },
+      "AgentChatRequest": {
+        "type": "object",
+        "required": ["text"],
+        "properties": {
+          "text": {
+            "type": "string",
+            "maxLength": 1000,
+            "description": "Consulta para el agente IA (máx 1000 caracteres)",
+            "example": "¿Cuáles son las técnicas más efectivas para manejar la ansiedad?"
+          }
+        }
+      },
+      "AgentChatResponse": {
+        "type": "object",
+        "properties": {
+          "response": {
+            "type": "string",
+            "description": "Respuesta del agente IA"
+          }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "path": {
+            "type": "string",
+            "description": "Ruta del request"
+          },
+          "status": {
+            "type": "integer",
+            "description": "Código HTTP"
+          },
+          "error": {
+            "type": "string",
+            "description": "Nombre del error"
+          },
+          "message": {
+            "type": "string",
+            "description": "Mensaje descriptivo"
+          },
+          "requestId": {
+            "type": "string",
+            "description": "ID único del request para debugging"
+          }
+        }
+      },
+      "HealthResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": ["UP", "DOWN"],
+            "example": "UP"
+          },
+          "components": {
+            "type": "object",
+            "properties": {
+              "diskSpace": {
+                "type": "object",
+                "properties": {
+                  "status": {
+                    "type": "string"
+                  },
+                  "details": {
+                    "type": "object"
+                  }
+                }
+              },
+              "r2dbc": {
+                "type": "object",
+                "properties": {
+                  "status": {
+                    "type": "string"
+                  },
+                  "details": {
+                    "type": "object"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

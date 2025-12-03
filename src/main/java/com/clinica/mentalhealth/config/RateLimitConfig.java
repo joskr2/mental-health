@@ -3,6 +3,9 @@ package com.clinica.mentalhealth.config;
 import io.github.bucket4j.Bandwidth;
 import io.github.bucket4j.Bucket;
 import io.github.bucket4j.Refill;
+import java.time.Duration;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -12,10 +15,6 @@ import org.springframework.web.server.ServerWebExchange;
 import org.springframework.web.server.WebFilter;
 import org.springframework.web.server.WebFilterChain;
 import reactor.core.publisher.Mono;
-
-import java.time.Duration;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Configuración de Rate Limiting para proteger la API contra abuso.
@@ -37,9 +36,9 @@ public class RateLimitConfig {
   private final Map<String, Bucket> generalBuckets = new ConcurrentHashMap<>();
 
   // Configuración de límites
-  private static final int AUTH_LIMIT = 10;        // requests por minuto
-  private static final int AI_LIMIT = 20;          // requests por minuto
-  private static final int GENERAL_LIMIT = 100;    // requests por minuto
+  private static final int AUTH_LIMIT = 10; // requests por minuto
+  private static final int AI_LIMIT = 20; // requests por minuto
+  private static final int GENERAL_LIMIT = 100; // requests por minuto
   private static final Duration REFILL_PERIOD = Duration.ofMinutes(1);
 
   // Headers estándar para rate limiting
@@ -56,7 +55,10 @@ public class RateLimitConfig {
 
     @Override
     @NonNull
-    public Mono<Void> filter(@NonNull ServerWebExchange exchange, @NonNull WebFilterChain chain) {
+    public Mono<Void> filter(
+      @NonNull ServerWebExchange exchange,
+      @NonNull WebFilterChain chain
+    ) {
       String path = exchange.getRequest().getPath().value();
       String clientIp = extractClientIp(exchange);
 
@@ -72,17 +74,30 @@ public class RateLimitConfig {
       if (context.bucket.tryConsume(1)) {
         // Añadir headers informativos
         long remaining = context.bucket.getAvailableTokens();
-        exchange.getResponse().getHeaders().add(HEADER_LIMIT, String.valueOf(context.limit));
-        exchange.getResponse().getHeaders().add(HEADER_REMAINING, String.valueOf(remaining));
+        exchange
+          .getResponse()
+          .getHeaders()
+          .add(HEADER_LIMIT, String.valueOf(context.limit));
+        exchange
+          .getResponse()
+          .getHeaders()
+          .add(HEADER_REMAINING, String.valueOf(remaining));
         return chain.filter(exchange);
       }
 
       // Rate limit excedido
-      log.warn("Rate limit excedido para IP {} en endpoint {} (límite: {}/min)",
-          clientIp, path, context.limit);
+      log.warn(
+        "Rate limit excedido para IP {} en endpoint {} (límite: {}/min)",
+        clientIp,
+        path,
+        context.limit
+      );
 
       exchange.getResponse().setStatusCode(HttpStatus.TOO_MANY_REQUESTS);
-      exchange.getResponse().getHeaders().add(HEADER_LIMIT, String.valueOf(context.limit));
+      exchange
+        .getResponse()
+        .getHeaders()
+        .add(HEADER_LIMIT, String.valueOf(context.limit));
       exchange.getResponse().getHeaders().add(HEADER_REMAINING, "0");
       exchange.getResponse().getHeaders().add(HEADER_RETRY_AFTER, "60");
 
@@ -90,46 +105,53 @@ public class RateLimitConfig {
     }
 
     private boolean isPublicStaticEndpoint(String path) {
-      return path.startsWith("/swagger") ||
-          path.startsWith("/v3/api-docs") ||
-          path.startsWith("/actuator/health") ||
-          path.startsWith("/webjars");
+      return (
+        path.startsWith("/docs") ||
+        path.startsWith("/scalar") ||
+        path.startsWith("/v3/api-docs") ||
+        path.startsWith("/actuator/health") ||
+        path.startsWith("/webjars") ||
+        path.startsWith("/static")
+      );
     }
 
     private RateLimitContext selectBucketContext(String path, String clientIp) {
       if (path.startsWith("/api/auth")) {
         return new RateLimitContext(
-            authBuckets.computeIfAbsent(clientIp, k -> createBucket(AUTH_LIMIT)),
-            AUTH_LIMIT
+          authBuckets.computeIfAbsent(clientIp, k -> createBucket(AUTH_LIMIT)),
+          AUTH_LIMIT
         );
       }
 
       if (path.startsWith("/api/agent")) {
         return new RateLimitContext(
-            aiBuckets.computeIfAbsent(clientIp, k -> createBucket(AI_LIMIT)),
-            AI_LIMIT
+          aiBuckets.computeIfAbsent(clientIp, k -> createBucket(AI_LIMIT)),
+          AI_LIMIT
         );
       }
 
       return new RateLimitContext(
-          generalBuckets.computeIfAbsent(clientIp, k -> createBucket(GENERAL_LIMIT)),
-          GENERAL_LIMIT
+        generalBuckets.computeIfAbsent(clientIp, k ->
+          createBucket(GENERAL_LIMIT)
+        ),
+        GENERAL_LIMIT
       );
     }
 
     private Bucket createBucket(int limit) {
       Bandwidth bandwidth = Bandwidth.classic(
-          limit,
-          Refill.greedy(limit, REFILL_PERIOD)
+        limit,
+        Refill.greedy(limit, REFILL_PERIOD)
       );
-      return Bucket.builder()
-          .addLimit(bandwidth)
-          .build();
+      return Bucket.builder().addLimit(bandwidth).build();
     }
 
     private String extractClientIp(ServerWebExchange exchange) {
       // Considerar proxies (X-Forwarded-For)
-      String xForwardedFor = exchange.getRequest().getHeaders().getFirst("X-Forwarded-For");
+      String xForwardedFor = exchange
+        .getRequest()
+        .getHeaders()
+        .getFirst("X-Forwarded-For");
       if (xForwardedFor != null && !xForwardedFor.isEmpty()) {
         return xForwardedFor.split(",")[0].trim();
       }
@@ -162,7 +184,10 @@ public class RateLimitConfig {
     totalCleaned += cleanupBucketMap(generalBuckets, GENERAL_LIMIT);
 
     if (totalCleaned > 0) {
-      log.debug("Limpieza de rate limiters: {} buckets inactivos eliminados", totalCleaned);
+      log.debug(
+        "Limpieza de rate limiters: {} buckets inactivos eliminados",
+        totalCleaned
+      );
     }
   }
 

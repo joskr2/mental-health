@@ -83,13 +83,13 @@ public class MentalHealthApplication {
         "║  Test Credentials (Development):                             ║"
       );
       log.info(
-        "║    👤 Admin:    username=admin, password=123                 ║"
+        "║    👤 Admin:    username=admin, password=password            ║"
       );
       log.info(
-        "║    👨‍⚕️ Doctor:   username=doc, password=123                   ║"
+        "║    👨‍⚕️ Doctor:   username=doc, password=password              ║"
       );
       log.info(
-        "║    🧑 Patient:  username=pepe@test.com, password=123         ║"
+        "║    🧑 Patient:  username=pepe@test.com, password=password    ║"
       );
       log.info(
         "╠══════════════════════════════════════════════════════════════╣"
@@ -98,7 +98,7 @@ public class MentalHealthApplication {
         "║  Endpoints:                                                  ║"
       );
       log.info(
-        "║    📖 Swagger UI:  http://localhost:8080/swagger-ui.html     ║"
+        "║    📖 API Docs:    http://localhost:8080/docs                ║"
       );
       log.info(
         "║    ❤️  Health:      http://localhost:8080/actuator/health    ║"

@@ -46,14 +46,15 @@ public class SecurityConfig {
             "/api/v1/auth/refresh"
           )
           .permitAll()
-          // === Swagger UI y OpenAPI (públicas para desarrollo) ===
+          // === API Documentation - Scalar y OpenAPI (públicas) ===
           .pathMatchers(
             "/v3/api-docs/**",
             "/v3/api-docs.yaml",
-            "/swagger-ui/**",
-            "/swagger-ui.html",
-            "/swagger-resources/**",
-            "/webjars/**"
+            "/docs",
+            "/docs/",
+            "/scalar",
+            "/webjars/**",
+            "/static/**"
           )
           .permitAll()
           // === Actuator endpoints (públicas para monitoreo) ===
