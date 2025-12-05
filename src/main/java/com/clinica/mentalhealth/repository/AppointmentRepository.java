@@ -20,4 +20,16 @@ public interface AppointmentRepository extends ReactiveCrudRepository<Appointmen
     // NUEVO: Filtros por Rol
     Flux<Appointment> findByPatientId(Long patientId);
     Flux<Appointment> findByPsychologistId(Long psychologistId);
+
+    // NUEVO: Queries para citas futuras (Assistant Tools)
+    Flux<Appointment> findByStartTimeAfter(LocalDateTime startTime);
+    Flux<Appointment> findByPatientIdAndStartTimeAfter(Long patientId, LocalDateTime startTime);
+    Flux<Appointment> findByPsychologistIdAndStartTimeAfter(Long psychologistId, LocalDateTime startTime);
+    
+    Flux<Appointment> findByStartTimeBetween(LocalDateTime start, LocalDateTime end);
+    Flux<Appointment> findByPatientIdAndStartTimeBetween(Long patientId, LocalDateTime start, LocalDateTime end);
+    Flux<Appointment> findByPsychologistIdAndStartTimeBetween(Long psychologistId, LocalDateTime start, LocalDateTime end);
+    
+    Flux<Appointment> findByPatientIdAndPsychologistIdAndStartTimeAfter(Long patientId, Long psychologistId, LocalDateTime startTime);
+    Flux<Appointment> findByPatientIdAndPsychologistIdAndStartTimeBetween(Long patientId, Long psychologistId, LocalDateTime start, LocalDateTime end);
 }

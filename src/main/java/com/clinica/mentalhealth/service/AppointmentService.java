@@ -199,4 +199,115 @@ public class AppointmentService {
                             return Mono.error(new IllegalAccessException("No tienes permisos para cancelar citas."));
                         }));
     }
+
+    /**
+     * Obtiene citas futuras filtradas según parámetros.
+     * Si no se especifican filtros, retorna citas del usuario según su rol.
+     * Solo retorna citas desde la fecha/hora actual en adelante.
+     */
+    public Flux<Appointment> getFutureAppointments(Long patientId, Long psychologistId, 
+                                                     LocalDateTime startDate, LocalDateTime endDate) {
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime effectiveStartDate = startDate != null && startDate.isAfter(now) ? startDate : now;
+        
+        return currentUser()
+                .flatMapMany(user -> {
+                    // Si hay filtros específicos, usarlos (respetando permisos)
+                    if (patientId != null || psychologistId != null) {
+                        return findFilteredAppointments(user, patientId, psychologistId, 
+                                                       effectiveStartDate, endDate);
+                    }
+                    
+                    // Sin filtros: retornar según rol del usuario
+                    if (ADMIN_ROLE.equals(user.role())) {
+                        return appointmentRepository.findByStartTimeAfter(effectiveStartDate);
+                    }
+                    if (PSYCHOLOGIST_ROLE.equals(user.role())) {
+                        return appointmentRepository.findByPsychologistIdAndStartTimeAfter(
+                            user.id(), effectiveStartDate);
+                    }
+                    if (PATIENT_ROLE.equals(user.role())) {
+                        return appointmentRepository.findByPatientIdAndStartTimeAfter(
+                            user.id(), effectiveStartDate);
+                    }
+                    return Flux.empty();
+                });
+    }
+
+    private Flux<Appointment> findFilteredAppointments(UserPrincipal user, Long patientId, 
+                                                        Long psychologistId,
+                                                        LocalDateTime startDate, 
+                                                        LocalDateTime endDate) {
+        // Validar permisos según rol
+        if (PATIENT_ROLE.equals(user.role())) {
+            // Pacientes solo pueden ver sus propias citas
+            if (patientId != null && !user.id().equals(patientId)) {
+                return Flux.error(new IllegalAccessException("No tienes permisos para ver citas de otros pacientes."));
+            }
+            patientId = user.id();
+        }
+
+        // Construir query según filtros
+        if (patientId != null && psychologistId != null) {
+            if (endDate != null) {
+                return appointmentRepository.findByPatientIdAndPsychologistIdAndStartTimeBetween(
+                    patientId, psychologistId, startDate, endDate);
+            }
+            return appointmentRepository.findByPatientIdAndPsychologistIdAndStartTimeAfter(
+                patientId, psychologistId, startDate);
+        }
+        
+        if (patientId != null) {
+            if (endDate != null) {
+                return appointmentRepository.findByPatientIdAndStartTimeBetween(
+                    patientId, startDate, endDate);
+            }
+            return appointmentRepository.findByPatientIdAndStartTimeAfter(patientId, startDate);
+        }
+        
+        if (psychologistId != null) {
+            // Verificar que Psicólogo solo consulte sus propias citas (si no es Admin)
+            if (PSYCHOLOGIST_ROLE.equals(user.role()) && !user.id().equals(psychologistId)) {
+                return Flux.error(new IllegalAccessException("No tienes permisos para ver citas de otros psicólogos."));
+            }
+            if (endDate != null) {
+                return appointmentRepository.findByPsychologistIdAndStartTimeBetween(
+                    psychologistId, startDate, endDate);
+            }
+            return appointmentRepository.findByPsychologistIdAndStartTimeAfter(
+                psychologistId, startDate);
+        }
+        
+        // Sin filtros específicos
+        if (endDate != null) {
+            return appointmentRepository.findByStartTimeBetween(startDate, endDate);
+        }
+        return appointmentRepository.findByStartTimeAfter(startDate);
+    }
+
+    /**
+     * Obtiene horarios disponibles (100% libres) para un psicólogo en una fecha específica.
+     * Retorna lista de horas disponibles en formato "HH:mm" (ej: ["09:00", "10:00", "14:00"]).
+     */
+    public Flux<String> getAvailableSlots(Long psychologistId, java.time.LocalDate date) {
+        LocalDateTime startOfDay = date.atStartOfDay();
+        LocalDateTime endOfDay = date.atTime(LocalTime.MAX);
+        
+        return appointmentRepository.findByPsychologistIdAndStartTimeBetween(
+                psychologistId, startOfDay, endOfDay)
+                .map(appointment -> appointment.startTime().toLocalTime())
+                .collectList()
+                .flatMapMany(occupiedTimes -> {
+                    // Generar todos los slots posibles (cada hora de 8am a 9pm)
+                    java.util.List<String> allSlots = new java.util.ArrayList<>();
+                    for (int hour = 8; hour < 22; hour++) {
+                        LocalTime slot = LocalTime.of(hour, 0);
+                        // Solo agregar si NO está ocupado
+                        if (!occupiedTimes.contains(slot)) {
+                            allSlots.add(String.format("%02d:00", hour));
+                        }
+                    }
+                    return Flux.fromIterable(allSlots);
+                });
+    }
 }

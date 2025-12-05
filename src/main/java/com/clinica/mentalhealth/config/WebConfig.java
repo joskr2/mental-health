@@ -1,6 +1,7 @@
 package com.clinica.mentalhealth.config;
 
 import org.springframework.context.annotation.Configuration;
+import org.springframework.lang.NonNull;
 import org.springframework.web.reactive.config.EnableWebFlux;
 import org.springframework.web.reactive.config.ResourceHandlerRegistry;
 import org.springframework.web.reactive.config.WebFluxConfigurer;
@@ -16,7 +17,7 @@ import org.springframework.web.reactive.config.WebFluxConfigurer;
 public class WebConfig implements WebFluxConfigurer {
 
     @Override
-    public void addResourceHandlers(ResourceHandlerRegistry registry) {
+    public void addResourceHandlers(@NonNull ResourceHandlerRegistry registry) {
         // Servir archivos estáticos desde /static/**
         registry.addResourceHandler("/static/**")
                 .addResourceLocations("classpath:/static/")

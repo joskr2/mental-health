@@ -1,9 +1,9 @@
 package com.clinica.mentalhealth.config;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.MediaType;
+import org.springframework.lang.NonNull;
 import org.springframework.web.reactive.function.server.RouterFunction;
 import org.springframework.web.reactive.function.server.RouterFunctions;
 import org.springframework.web.reactive.function.server.ServerResponse;
@@ -22,10 +22,6 @@ import org.springframework.web.reactive.function.server.ServerResponse;
 @Configuration
 public class ScalarConfig {
 
-  // Usamos archivo estático en lugar del endpoint dinámico de springdoc
-  // que tiene problemas de rendimiento en WebFlux
-  private static final String OPENAPI_SPEC_PATH = "/static/openapi.json";
-
   @Bean
   public RouterFunction<ServerResponse> scalarRoutes() {
     String scalarHtml = buildScalarHtml();
@@ -33,20 +29,32 @@ public class ScalarConfig {
     return RouterFunctions.route()
       .GET("/docs", request ->
         ServerResponse.ok()
-          .contentType(MediaType.TEXT_HTML)
-          .bodyValue(scalarHtml)
+          .contentType(requireNonNull(MediaType.TEXT_HTML))
+          .bodyValue(requireNonNull(scalarHtml))
       )
       .GET("/scalar", request ->
         ServerResponse.ok()
-          .contentType(MediaType.TEXT_HTML)
-          .bodyValue(scalarHtml)
+          .contentType(requireNonNull(MediaType.TEXT_HTML))
+          .bodyValue(requireNonNull(scalarHtml))
       )
       .GET("/docs/", request ->
         ServerResponse.ok()
-          .contentType(MediaType.TEXT_HTML)
-          .bodyValue(scalarHtml)
+          .contentType(requireNonNull(MediaType.TEXT_HTML))
+          .bodyValue(requireNonNull(scalarHtml))
       )
       .build();
+  }
+
+  @NonNull
+  private static MediaType requireNonNull(MediaType type) {
+    if (type == null) throw new IllegalStateException("MediaType cannot be null");
+    return type;
+  }
+
+  @NonNull
+  private static String requireNonNull(String value) {
+    if (value == null) throw new IllegalStateException("String cannot be null");
+    return value;
   }
 
   private String buildScalarHtml() {

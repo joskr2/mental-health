@@ -10,7 +10,6 @@ import org.junit.jupiter.api.Test;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.temporal.TemporalAdjusters;
 
@@ -149,7 +148,6 @@ class DateCalculationServiceTest {
             assertEquals(DayOfWeek.TUESDAY, parsed.getDayOfWeek());
 
             // Debe ser al menos el próximo martes desde hoy
-            LocalDate nextTuesday = LocalDate.now(ZONE_LIMA).with(TemporalAdjusters.next(DayOfWeek.TUESDAY));
             assertTrue(parsed.toLocalDate().isAfter(LocalDate.now(ZONE_LIMA).minusDays(1)));
         }
 

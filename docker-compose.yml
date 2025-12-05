@@ -1,7 +1,7 @@
 services:
   postgres:
     image: postgres:17-alpine
-    container_name: mental-health-db
+    container_name: clinic-admin-db
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-mental_clinic}
@@ -36,13 +36,13 @@ services:
           cpus: "0.25"
           memory: 128M
     networks:
-      - mental-health-network
+      - clinic-admin-network
 
   app-dev:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: mental-health-api-dev
+    container_name: clinic-admin-api-dev
     restart: unless-stopped
     profiles:
       - dev
@@ -88,7 +88,7 @@ services:
           cpus: "0.5"
           memory: 384M
     networks:
-      - mental-health-network
+      - clinic-admin-network
     labels:
       - "environment=development"
 
@@ -96,7 +96,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: mental-health-api-prod
+    container_name: clinic-admin-api-prod
     restart: always
     profiles:
       - prod
@@ -147,17 +147,17 @@ services:
           cpus: "0.5"
           memory: 512M
     networks:
-      - mental-health-network
+      - clinic-admin-network
     labels:
       - "environment=production"
 
 networks:
-  mental-health-network:
+  clinic-admin-network:
     driver: bridge
-    name: mental-health-net
+    name: clinic-admin-net
 
 volumes:
   postgres_data:
-    name: mental-health-postgres-data
+    name: clinic-admin-postgres-data
   app_logs:
-    name: mental-health-app-logs
+    name: clinic-admin-app-logs

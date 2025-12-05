@@ -16,9 +16,9 @@ RUN java -Djarmode=layertools -jar target/*.jar extract --destination extracted
 
 FROM eclipse-temurin:17-jre AS runtime
 
-LABEL maintainer="Mental Health Clinic"
+LABEL maintainer="Psychological Clinic Admin"
 LABEL version="1.0"
-LABEL description="API Reactiva para Clínica de Salud Mental"
+LABEL description="API Reactiva para Gestión Administrativa de Clínica Psicológica"
 
 RUN groupadd -g 1001 appgroup && \
     useradd -u 1001 -g appgroup -s /bin/bash appuser && \

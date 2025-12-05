@@ -2,7 +2,6 @@ package com.clinica.mentalhealth.config;
 
 import io.github.bucket4j.Bandwidth;
 import io.github.bucket4j.Bucket;
-import io.github.bucket4j.Refill;
 import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -139,10 +138,10 @@ public class RateLimitConfig {
     }
 
     private Bucket createBucket(int limit) {
-      Bandwidth bandwidth = Bandwidth.classic(
-        limit,
-        Refill.greedy(limit, REFILL_PERIOD)
-      );
+      Bandwidth bandwidth = Bandwidth.builder()
+              .capacity(limit)
+              .refillGreedy(limit, REFILL_PERIOD)
+              .build();
       return Bucket.builder().addLimit(bandwidth).build();
     }
 

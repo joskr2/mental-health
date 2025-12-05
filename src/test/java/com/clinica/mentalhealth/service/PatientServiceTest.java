@@ -246,8 +246,10 @@ class PatientServiceTest {
         Mono.just(testPatient)
       );
       when(passwordEncoder.encode(anyString())).thenReturn("encodedPassword");
+      @SuppressWarnings("null")
+      User nonNullUser = testUser;
       when(userRepository.save(any(User.class))).thenReturn(
-        Mono.just(testUser)
+        Mono.just(nonNullUser)
       );
 
       // Act & Assert
@@ -285,12 +287,20 @@ class PatientServiceTest {
       when(passwordEncoder.encode("123")).thenReturn("encodedPassword");
 
       User newUser = new User(5L, email, "encodedPassword", Role.ROLE_PATIENT);
-      when(userRepository.save(any(User.class))).thenReturn(Mono.just(newUser));
+      @SuppressWarnings("null")
+      User nonNullNewUser = newUser;
+      when(userRepository.save(any(User.class))).thenReturn(Mono.just(nonNullNewUser));
 
       // Mock DatabaseClient chain
-      when(databaseClient.sql(anyString())).thenReturn(executeSpec);
-      when(executeSpec.bind(anyString(), any())).thenReturn(executeSpec);
-      when(executeSpec.fetch()).thenReturn((FetchSpec) fetchSpec);
+      @SuppressWarnings("null")
+      String nonNullString = anyString();
+      when(databaseClient.sql(nonNullString)).thenReturn(executeSpec);
+      @SuppressWarnings("null")
+      Object nonNullObject = any();
+      when(executeSpec.bind(nonNullString, nonNullObject)).thenReturn(executeSpec);
+      @SuppressWarnings("unchecked")
+      FetchSpec<Object> nonNullFetchSpec = fetchSpec;
+      when(executeSpec.fetch()).thenReturn(nonNullFetchSpec);
       when(fetchSpec.rowsUpdated()).thenReturn(Mono.just(1L));
 
       // Act & Assert
@@ -319,6 +329,8 @@ class PatientServiceTest {
       // Arrange
       when(patientRepository.findById(1L)).thenReturn(Mono.just(testPatient));
       when(patientRepository.deleteById(1L)).thenReturn(Mono.empty());
+      @SuppressWarnings("null")
+      User nonNullUser = testUser;
       when(userRepository.deleteById(1L)).thenReturn(Mono.empty());
 
       // Act & Assert
@@ -356,12 +368,14 @@ class PatientServiceTest {
 
     @Test
     @DisplayName("findById con null debe fallar")
+    @SuppressWarnings("null")
     void findByIdWithNullShouldFail() {
       // Arrange - Mock para evitar NPE del mock no configurado
-      when(patientRepository.findById((Long) null)).thenReturn(Mono.empty());
+      Long nullId = null;
+      when(patientRepository.findById(nullId)).thenReturn(Mono.empty());
 
       // Act & Assert - Puede lanzar NPE o ResponseStatusException dependiendo de la implementación
-      StepVerifier.create(patientService.findById(null)).expectError().verify();
+      StepVerifier.create(patientService.findById(nullId)).expectError().verify();
     }
 
     @Test

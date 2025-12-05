@@ -1,7 +1,9 @@
 package com.clinica.mentalhealth.config;
 
 import com.clinica.mentalhealth.ai.tools.*;
+import com.clinica.mentalhealth.domain.Appointment;
 import com.clinica.mentalhealth.domain.Patient;
+import com.clinica.mentalhealth.domain.Psychologist;
 import com.clinica.mentalhealth.domain.Role;
 import com.clinica.mentalhealth.domain.Room;
 import com.clinica.mentalhealth.service.AppointmentService;
@@ -13,6 +15,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Description;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.function.Function;
 
@@ -28,7 +32,7 @@ public class AiToolsConfig {
             +
             "expresiones como 'próximo lunes', 'mañana a las 4', 'en 3 días' a formato ISO. " +
             "NUNCA calcules fechas tú mismo, SIEMPRE usa esta herramienta.")
-    @AllowedRoles({ Role.ROLE_ADMIN, Role.ROLE_PSYCHOLOGIST })
+    @AllowedRoles({ Role.ROLE_ADMIN, Role.ROLE_PSYCHOLOGIST, Role.ROLE_PATIENT })
     public Function<DateCalculationRequest, DateCalculationResponse> calculateDateTool(DateCalculationService service) {
         return service::calculate;
     }
@@ -74,6 +78,73 @@ public class AiToolsConfig {
                 return "ERROR AL AGENDAR: " + e.getMessage();
             }
         };
+    }
+
+    @Bean
+    @Description("Listar citas futuras según filtros opcionales (paciente, psicólogo, rango de fechas). " +
+            "Si no se especifican filtros, retorna citas del usuario actual según su rol. " +
+            "SOLO retorna citas desde HOY en adelante.")
+    @AllowedRoles({ Role.ROLE_ADMIN, Role.ROLE_PSYCHOLOGIST, Role.ROLE_PATIENT })
+    public Function<ListAppointmentsRequest, List<Appointment>> listAppointmentsTool(AppointmentService service) {
+        return request -> {
+            try {
+                LocalDateTime start = request.startDate() != null 
+                    ? LocalDateTime.parse(request.startDate()) : null;
+                LocalDateTime end = request.endDate() != null 
+                    ? LocalDateTime.parse(request.endDate()) : null;
+                
+                return service.getFutureAppointments(
+                    request.patientId(), 
+                    request.psychologistId(), 
+                    start, 
+                    end
+                ).collectList().block();
+            } catch (Exception e) {
+                return List.of(); // Retornar lista vacía en caso de error
+            }
+        };
+    }
+
+    @Bean
+    @Description("Verificar disponibilidad de horarios para un psicólogo en una fecha específica. " +
+            "Retorna lista de horarios 100% LIBRES en formato 'HH:mm' (ej: ['09:00', '10:00', '14:00']). " +
+            "Solo muestra horarios completamente disponibles, sin conflictos.")
+    @AllowedRoles({ Role.ROLE_ADMIN, Role.ROLE_PSYCHOLOGIST })
+    public Function<CheckAvailabilityRequest, List<String>> checkAvailabilityTool(AppointmentService service) {
+        return request -> {
+            try {
+                LocalDate date = LocalDate.parse(request.date().substring(0, 10));
+                return service.getAvailableSlots(request.psychologistId(), date)
+                             .collectList()
+                             .block();
+            } catch (Exception e) {
+                return List.of(); // Retornar lista vacía en caso de error
+            }
+        };
+    }
+
+    @Bean
+    @Description("Cancelar una cita existente. Requiere el ID de la cita. " +
+            "Admin puede cancelar cualquier cita, Psicólogos solo sus propias citas.")
+    @AllowedRoles({ Role.ROLE_ADMIN, Role.ROLE_PSYCHOLOGIST })
+    public Function<CancelAppointmentRequest, String> cancelAppointmentTool(AppointmentService service) {
+        return request -> {
+            try {
+                service.cancelAppointment(request.appointmentId()).block();
+                return "ÉXITO: Cita #" + request.appointmentId() + " cancelada correctamente.";
+            } catch (Exception e) {
+                return ERROR_PREFIX + e.getMessage();
+            }
+        };
+    }
+
+    // --- HERRAMIENTAS DE PSICÓLOGOS ---
+
+    @Bean
+    @Description("Listar todos los psicólogos registrados con su especialidad y datos de contacto.")
+    @AllowedRoles({ Role.ROLE_ADMIN, Role.ROLE_PSYCHOLOGIST, Role.ROLE_PATIENT })
+    public Function<EmptyRequest, List<Psychologist>> listPsychologistsTool(PsychologistService service) {
+        return request -> service.findAllCached().block();
     }
 
     // --- HERRAMIENTAS DE INFRAESTRUCTURA/STAFF (SOLO ADMIN) ---
@@ -137,7 +208,7 @@ public class AiToolsConfig {
     }
 
     @Bean
-    @Description("Listar todas las salas disponibles.")
+    @Description("Listar todas las salas/consultorios disponibles.")
     @AllowedRoles({ Role.ROLE_ADMIN, Role.ROLE_PSYCHOLOGIST })
     public Function<EmptyRequest, List<Room>> listRoomsTool(RoomService service) {
         // Usar versión cacheable que retorna Mono<List<Room>>

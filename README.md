@@ -1,6 +1,6 @@
-# Mental Health Clinic API
+# Clinic Admin API
 
-API REST reactiva para gestión de clínica de salud mental con asistente de IA integrado.
+API REST reactiva para gestión administrativa de clínica psicológica con asistente de IA integrado.
 
 ## 🚀 Características
 
@@ -42,7 +42,7 @@ API REST reactiva para gestión de clínica de salud mental con asistente de IA 
 
 ```bash
 git clone <url-del-repositorio>
-cd mental-health
+cd clinic-admin-api
 ```
 
 ### 2. Configurar variables de entorno
@@ -246,35 +246,85 @@ curl -X GET http://localhost:8080/api/v1/patients \
 
 ---
 
-## Asistente de IA
+## Asistente Administrativo de IA
 
-El sistema incluye un asistente de IA que puede:
+El sistema incluye un **Asistente Administrativo** (powered by DeepSeek) que facilita la gestión de citas y administración de la clínica mediante lenguaje natural.
 
-- Consultar información de pacientes
-- Verificar disponibilidad de citas
-- Sugerir horarios disponibles
-- Crear pacientes y citas
-- Responder preguntas en lenguaje natural
+### ⚠️ IMPORTANTE: Alcance del Asistente
 
-### Herramientas por Rol
+Este asistente es **EXCLUSIVAMENTE para tareas administrativas**. El sistema **JAMÁS** menciona ni maneja temas clínicos.
 
-| Herramienta            | Admin | Psicólogo | Descripción                    |
-| ---------------------- | ----- | --------- | ------------------------------ |
-| calculateDateTool      | ✅    | ✅        | Calcular fechas relativas      |
-| searchPatientTool      | ✅    | ✅        | Buscar pacientes               |
-| createPatientTool      | ✅    | ✅        | Crear pacientes                |
-| bookAppointmentTool    | ✅    | ✅        | Agendar citas                  |
-| listRoomsTool          | ✅    | ✅        | Listar salas                   |
-| createPsychologistTool | ✅    | ❌        | Crear psicólogos (solo Admin)  |
-| createRoomTool         | ✅    | ❌        | Crear salas (solo Admin)       |
+✅ **PUEDE:**
+- Agendar, consultar y cancelar citas
+- Registrar y buscar pacientes
+- Consultar disponibilidad de psicólogos
+- Listar horarios disponibles
+- Crear psicólogos y salas (Admin)
+- Gestionar el calendario de citas
 
-### Ejemplo de uso
+❌ **NO PUEDE (ni DEBE):**
+- Brindar consultas psicológicas
+- Diagnosticar o evaluar síntomas
+- Recomendar terapias o tratamientos
+- Dar asesoramiento clínico
+- Acceder a notas clínicas privadas
 
+### Herramientas Disponibles por Rol
+
+| Herramienta             | Admin | Psicólogo | Paciente | Descripción                          |
+|-------------------------|-------|-----------|----------|--------------------------------------|
+| calculateDateTool       | ✅    | ✅        | ✅       | Convierte fechas relativas a ISO     |
+| listAppointmentsTool    | ✅    | ✅        | ✅       | Lista citas futuras (según permisos) |
+| listPsychologistsTool   | ✅    | ✅        | ✅       | Lista psicólogos y especialidades    |
+| searchPatientTool       | ✅    | ✅        | ❌       | Busca pacientes por nombre/DNI       |
+| createPatientTool       | ✅    | ✅        | ❌       | Registra nuevo paciente              |
+| checkAvailabilityTool   | ✅    | ✅        | ❌       | Ver horarios 100% libres             |
+| bookAppointmentTool     | ✅    | ✅        | ❌       | Agendar nueva cita                   |
+| cancelAppointmentTool   | ✅    | ✅        | ❌       | Cancelar cita                        |
+| listRoomsTool           | ✅    | ✅        | ❌       | Listar salas disponibles             |
+| createPsychologistTool  | ✅    | ❌        | ❌       | Contratar psicólogo (solo Admin)     |
+| createRoomTool          | ✅    | ❌        | ❌       | Crear sala (solo Admin)              |
+
+### Ejemplos de Uso
+
+#### Paciente: Consultar sus citas
 ```bash
-curl -X POST http://localhost:8080/api/v1/agent/chat \
-  -H "Authorization: Bearer <tu-token>" \
+curl -X POST http://localhost:8080/api/admin-assistant/chat \
+  -H "Authorization: Bearer <token-paciente>" \
   -H "Content-Type: application/json" \
-  -d '{"text":"Agenda una cita para Pepe Grillo el próximo lunes a las 10am"}'
+  -d '{"text":"Muestra mis citas de la próxima semana"}'
+```
+
+#### Psicólogo: Agendar una cita
+```bash
+curl -X POST http://localhost:8080/api/admin-assistant/chat \
+  -H "Authorization: Bearer <token-psicologo>" \
+  -H "Content-Type: application/json" \
+  -d '{"text":"Agenda una cita para el paciente Juan Pérez DNI 12345678 conmigo el próximo martes a las 3pm"}'
+```
+
+#### Psicólogo: Consultar disponibilidad
+```bash
+curl -X POST http://localhost:8080/api/admin-assistant/chat \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -d '{"text":"¿Qué horarios tengo libres mañana?"}'
+```
+
+#### Admin: Registrar paciente y agendar
+```bash
+curl -X POST http://localhost:8080/api/admin-assistant/chat \
+  -H "Authorization: Bearer <token-admin>" \
+  -H "Content-Type: application/json" \
+  -d '{"text":"Registra a María García, email maria@example.com, teléfono 987654321, DNI 87654321 y agéndale una cita con la Dra. Martínez para el viernes a las 10am"}'
+```
+
+#### ⛔ Solicitud RECHAZADA (fuera de alcance)
+```bash
+# Usuario: "Tengo ansiedad, ¿qué debo hacer?"
+# Respuesta del Asistente: 
+# "No estoy autorizado para consultas clínicas. Por favor, 
+#  agende una cita con un psicólogo profesional."
 ```
 
 ---
@@ -389,7 +439,7 @@ curl http://localhost:8080/actuator/caches
 ## Estructura del Proyecto
 
 ```
-mental-health/
+clinic-admin-api/
 ├── docker.sh                    # Script principal de comandos
 ├── docker-compose.yml           # Configuración Docker
 ├── Dockerfile                   # Imagen de la aplicación

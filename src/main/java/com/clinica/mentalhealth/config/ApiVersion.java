@@ -123,11 +123,17 @@ public final class ApiVersion {
     public static final class Legacy {
         private Legacy() {}
 
+        @Deprecated(since = "1.0.0", forRemoval = true)
         public static final String AUTH = "/api/auth";
+        @Deprecated(since = "1.0.0", forRemoval = true)
         public static final String PATIENTS = "/api/patients";
+        @Deprecated(since = "1.0.0", forRemoval = true)
         public static final String PSYCHOLOGISTS = "/api/psychologists";
+        @Deprecated(since = "1.0.0", forRemoval = true)
         public static final String APPOINTMENTS = "/api/appointments";
+        @Deprecated(since = "1.0.0", forRemoval = true)
         public static final String ROOMS = "/api/rooms";
+        @Deprecated(since = "1.0.0", forRemoval = true)
         public static final String AGENT = "/api/agent";
     }
 }

@@ -29,12 +29,14 @@ class JwtServiceTest {
         jwtService = new JwtService();
 
         // Configurar propiedades usando reflection (simula @Value injection)
-        ReflectionTestUtils.setField(jwtService, "accessSecretString",
+        @SuppressWarnings("null")
+        JwtService nonNullService = jwtService;
+        ReflectionTestUtils.setField(nonNullService, "accessSecretString",
                 "test-access-secret-key-minimum-32-characters!");
-        ReflectionTestUtils.setField(jwtService, "refreshSecretString",
+        ReflectionTestUtils.setField(nonNullService, "refreshSecretString",
                 "test-refresh-secret-key-minimum-32-characters");
-        ReflectionTestUtils.setField(jwtService, "accessTtl", Duration.ofMinutes(30));
-        ReflectionTestUtils.setField(jwtService, "refreshTtl", Duration.ofDays(14));
+        ReflectionTestUtils.setField(nonNullService, "accessTtl", Duration.ofMinutes(30));
+        ReflectionTestUtils.setField(nonNullService, "refreshTtl", Duration.ofDays(14));
 
         // Inicializar las claves
         jwtService.init();
@@ -357,9 +359,9 @@ class JwtServiceTest {
 
         @Test
         @DisplayName("Debe generar access token (compatibilidad)")
-        @SuppressWarnings("deprecation")
         void shouldGenerateAccessTokenForCompatibility() {
             // Act
+            @SuppressWarnings("deprecation")
             String legacyToken = jwtService.generateToken(testUser);
             String accessToken = jwtService.generateAccessToken(testUser);
 
