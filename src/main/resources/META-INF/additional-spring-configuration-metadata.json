@@ -5,6 +5,48 @@
       "type": "java.lang.Integer",
       "description": "Número máximo de sesiones activas por usuario. 0 = sin límite.",
       "defaultValue": 5
+    },
+    {
+      "name": "jwt.access-secret",
+      "type": "java.lang.String",
+      "description": "Clave secreta para firmar tokens de acceso JWT (mínimo 32 caracteres para HMAC-SHA256).",
+      "defaultValue": "development-access-secret-key-min-32-chars!!"
+    },
+    {
+      "name": "jwt.refresh-secret",
+      "type": "java.lang.String",
+      "description": "Clave secreta para firmar refresh tokens JWT (mínimo 32 caracteres para HMAC-SHA256).",
+      "defaultValue": "development-refresh-secret-key-min-32-chars!"
+    },
+    {
+      "name": "jwt.access-expiration",
+      "type": "java.time.Duration",
+      "description": "Tiempo de expiración de los tokens de acceso en formato ISO-8601 (ej: PT30M para 30 minutos).",
+      "defaultValue": "PT30M"
+    },
+    {
+      "name": "jwt.refresh-expiration",
+      "type": "java.time.Duration",
+      "description": "Tiempo de expiración de los refresh tokens en formato ISO-8601 (ej: P14D para 14 días).",
+      "defaultValue": "P14D"
+    },
+    {
+      "name": "rate-limit.auth.requests-per-minute",
+      "type": "java.lang.Integer",
+      "description": "Número máximo de requests permitidos por minuto en endpoints de autenticación (prevenir ataques de fuerza bruta).",
+      "defaultValue": 10
+    },
+    {
+      "name": "rate-limit.ai.requests-per-minute",
+      "type": "java.lang.Integer",
+      "description": "Número máximo de requests permitidos por minuto en endpoints de IA/Chat (prevenir abuso de API externa).",
+      "defaultValue": 20
+    },
+    {
+      "name": "rate-limit.general.requests-per-minute",
+      "type": "java.lang.Integer",
+      "description": "Número máximo de requests permitidos por minuto en endpoints generales.",
+      "defaultValue": 100
     }
   ]
 }

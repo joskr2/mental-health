@@ -25,18 +25,17 @@ class JwtServiceTest {
     private User testUser;
 
     @BeforeEach
+    @SuppressWarnings("null")
     void setUp() {
         jwtService = new JwtService();
 
         // Configurar propiedades usando reflection (simula @Value injection)
-        @SuppressWarnings("null")
-        JwtService nonNullService = jwtService;
-        ReflectionTestUtils.setField(nonNullService, "accessSecretString",
+        ReflectionTestUtils.setField(jwtService, "accessSecretString",
                 "test-access-secret-key-minimum-32-characters!");
-        ReflectionTestUtils.setField(nonNullService, "refreshSecretString",
+        ReflectionTestUtils.setField(jwtService, "refreshSecretString",
                 "test-refresh-secret-key-minimum-32-characters");
-        ReflectionTestUtils.setField(nonNullService, "accessTtl", Duration.ofMinutes(30));
-        ReflectionTestUtils.setField(nonNullService, "refreshTtl", Duration.ofDays(14));
+        ReflectionTestUtils.setField(jwtService, "accessTtl", Duration.ofMinutes(30));
+        ReflectionTestUtils.setField(jwtService, "refreshTtl", Duration.ofDays(14));
 
         // Inicializar las claves
         jwtService.init();
@@ -58,7 +57,7 @@ class JwtServiceTest {
             // Assert
             assertNotNull(token);
             assertFalse(token.isEmpty());
-            assertTrue(token.split("\\.").length == 3); // JWT tiene 3 partes
+            assertEquals(3, token.split("\\.").length, "JWT debe tener 3 partes separadas por puntos");
         }
 
         @Test
@@ -350,24 +349,6 @@ class JwtServiceTest {
 
             // Assert
             assertEquals(Duration.ofDays(14), ttl);
-        }
-    }
-
-    @Nested
-    @DisplayName("Legacy generateToken()")
-    class LegacyGenerateTokenTests {
-
-        @Test
-        @DisplayName("Debe generar access token (compatibilidad)")
-        void shouldGenerateAccessTokenForCompatibility() {
-            // Act
-            @SuppressWarnings("deprecation")
-            String legacyToken = jwtService.generateToken(testUser);
-            String accessToken = jwtService.generateAccessToken(testUser);
-
-            // Assert - Ambos deberían ser válidos como access tokens
-            assertTrue(jwtService.validateAccessToken(legacyToken));
-            assertTrue(jwtService.validateAccessToken(accessToken));
         }
     }
 }

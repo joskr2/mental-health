@@ -125,15 +125,6 @@ public class JwtService {
   }
 
   /**
-   * Legacy method para compatibilidad.
-   * @deprecated Usar generateAccessToken en su lugar.
-   */
-  @Deprecated(forRemoval = true)
-  public String generateToken(User user) {
-    return generateAccessToken(user);
-  }
-
-  /**
    * Valida un access token.
    * @return true si el token es válido y es de tipo "access"
    */

@@ -9,6 +9,7 @@ import com.clinica.mentalhealth.domain.Role;
 import com.clinica.mentalhealth.domain.User;
 import com.clinica.mentalhealth.repository.PatientRepository;
 import com.clinica.mentalhealth.repository.UserRepository;
+import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -52,7 +53,7 @@ class PatientServiceTest {
   private DatabaseClient.GenericExecuteSpec executeSpec;
 
   @Mock
-  private FetchSpec<Object> fetchSpec;
+  private FetchSpec<Map<String, Object>> fetchSpec;
 
   @InjectMocks
   private PatientService patientService;
@@ -236,6 +237,7 @@ class PatientServiceTest {
   @DisplayName("createPatient()")
   class CreatePatientTests {
 
+    @SuppressWarnings("null")
     @Test
     @DisplayName("Debe fallar cuando DNI ya existe")
     void shouldFailWhenDniAlreadyExists() {
@@ -246,10 +248,8 @@ class PatientServiceTest {
         Mono.just(testPatient)
       );
       when(passwordEncoder.encode(anyString())).thenReturn("encodedPassword");
-      @SuppressWarnings("null")
-      User nonNullUser = testUser;
       when(userRepository.save(any(User.class))).thenReturn(
-        Mono.just(nonNullUser)
+        Mono.just(testUser)
       );
 
       // Act & Assert
@@ -275,7 +275,7 @@ class PatientServiceTest {
 
     @Test
     @DisplayName("Debe crear paciente exitosamente con nuevo DNI")
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings({ "null" })
     void shouldCreatePatientSuccessfully() {
       // Arrange
       String name = "Nuevo Paciente";
@@ -287,20 +287,12 @@ class PatientServiceTest {
       when(passwordEncoder.encode("123")).thenReturn("encodedPassword");
 
       User newUser = new User(5L, email, "encodedPassword", Role.ROLE_PATIENT);
-      @SuppressWarnings("null")
-      User nonNullNewUser = newUser;
-      when(userRepository.save(any(User.class))).thenReturn(Mono.just(nonNullNewUser));
+      when(userRepository.save(any(User.class))).thenReturn(Mono.just(newUser));
 
       // Mock DatabaseClient chain
-      @SuppressWarnings("null")
-      String nonNullString = anyString();
-      when(databaseClient.sql(nonNullString)).thenReturn(executeSpec);
-      @SuppressWarnings("null")
-      Object nonNullObject = any();
-      when(executeSpec.bind(nonNullString, nonNullObject)).thenReturn(executeSpec);
-      @SuppressWarnings("unchecked")
-      FetchSpec<Object> nonNullFetchSpec = fetchSpec;
-      when(executeSpec.fetch()).thenReturn(nonNullFetchSpec);
+      when(databaseClient.sql(anyString())).thenReturn(executeSpec);
+      when(executeSpec.bind(anyString(), any())).thenReturn(executeSpec);
+      when(executeSpec.fetch()).thenReturn(fetchSpec);
       when(fetchSpec.rowsUpdated()).thenReturn(Mono.just(1L));
 
       // Act & Assert
@@ -329,8 +321,6 @@ class PatientServiceTest {
       // Arrange
       when(patientRepository.findById(1L)).thenReturn(Mono.just(testPatient));
       when(patientRepository.deleteById(1L)).thenReturn(Mono.empty());
-      @SuppressWarnings("null")
-      User nonNullUser = testUser;
       when(userRepository.deleteById(1L)).thenReturn(Mono.empty());
 
       // Act & Assert

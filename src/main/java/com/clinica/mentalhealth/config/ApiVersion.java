@@ -37,16 +37,6 @@ public final class ApiVersion {
      */
     public static final String BASE = "/api";
 
-    // ==================== Path Helpers ====================
-
-    /**
-     * Construye el path completo para un recurso en v1.
-     * Ejemplo: path("patients") -> "/api/v1/patients"
-     */
-    public static String v1(String resource) {
-        return V1 + "/" + resource;
-    }
-
     // ==================== Resource Paths ====================
 
     /**
@@ -109,31 +99,5 @@ public final class ApiVersion {
          * Header que sugiere la nueva versión del endpoint.
          */
         public static final String API_SUCCESSOR = "X-API-Successor";
-    }
-
-    // ==================== Legacy Paths (for migration) ====================
-
-    /**
-     * Paths legacy sin versión (para mantener compatibilidad temporal).
-     * Estos paths deben migrar a v1 eventualmente.
-     *
-     * @deprecated Usar paths versionados de {@link Resources}
-     */
-    @Deprecated(since = "1.0.0", forRemoval = true)
-    public static final class Legacy {
-        private Legacy() {}
-
-        @Deprecated(since = "1.0.0", forRemoval = true)
-        public static final String AUTH = "/api/auth";
-        @Deprecated(since = "1.0.0", forRemoval = true)
-        public static final String PATIENTS = "/api/patients";
-        @Deprecated(since = "1.0.0", forRemoval = true)
-        public static final String PSYCHOLOGISTS = "/api/psychologists";
-        @Deprecated(since = "1.0.0", forRemoval = true)
-        public static final String APPOINTMENTS = "/api/appointments";
-        @Deprecated(since = "1.0.0", forRemoval = true)
-        public static final String ROOMS = "/api/rooms";
-        @Deprecated(since = "1.0.0", forRemoval = true)
-        public static final String AGENT = "/api/agent";
     }
 }
