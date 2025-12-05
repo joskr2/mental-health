@@ -1,210 +1,89 @@
-# Clinic Admin API
+# Clinic Admin API / API Clínica Administrativa
 
-API REST reactiva para gestión administrativa de clínica psicológica con asistente de IA integrado.
+Reactive REST API for mental health clinic management with AI assistant integration.  
+API REST reactiva para gestión de clínica de salud mental con asistente IA integrado.
 
-## 🚀 Características
+## Features / Características
 
-- **API Reactiva** - Spring WebFlux + R2DBC para máximo rendimiento
-- **Autenticación JWT** - Access tokens (30 min) + Refresh tokens (14 días) con detección de robo
-- **Asistente IA** - Integración con DeepSeek para operaciones clínicas en lenguaje natural
-- **Rate Limiting** - Protección contra abuso de la API
-- **Migraciones BD** - Flyway para control de versiones del esquema
-- **Logging Estructurado** - JSON en producción para agregadores (ELK, CloudWatch)
-- **API Versionada** - Soporte para `/api/v1/` con headers de deprecación
-
-## Tabla de Contenidos
-
-1. [Requisitos](#requisitos)
-2. [Configuración Inicial](#configuración-inicial)
-3. [Arranque de la Aplicación](#arranque-de-la-aplicación)
-4. [Endpoints](#endpoints)
-5. [Autenticación](#autenticación)
-6. [Asistente de IA](#asistente-de-ia)
-7. [Rate Limiting](#rate-limiting)
-8. [Migraciones de Base de Datos](#migraciones-de-base-de-datos)
-9. [Monitoreo](#monitoreo)
-10. [Estructura del Proyecto](#estructura-del-proyecto)
-11. [Testing](#testing)
+- **Reactive API** / API Reactiva - Spring WebFlux + R2DBC
+- **JWT Auth** - Access (30min) + Refresh tokens (14d) with theft detection / con detección de robo
+- **AI Assistant** / Asistente IA - DeepSeek for natural language operations / operaciones en lenguaje natural
+- **Rate Limiting** - API abuse protection / protección contra abuso
+- **DB Migrations** / Migraciones - Flyway version control / control de versiones
+- **Structured Logging** / Logs Estructurados - JSON for production / JSON en producción
+- **Versioned API** / API Versionada - `/api/v1/` support / soporte
 
 ---
 
-## Requisitos
+## Quick Start / Inicio Rápido
 
-- Java 17 o superior
-- Docker y Docker Compose
-- API Key de DeepSeek (<https://platform.deepseek.com/>)
+### Prerequisites / Requisitos
 
----
+- Java 17+
+- Docker + Docker Compose
+- DeepSeek API Key: <https://platform.deepseek.com>
 
-## Configuración Inicial
-
-### 1. Clonar el repositorio
+### Setup / Configuración
 
 ```bash
-git clone <url-del-repositorio>
+# Clone / Clonar
+git clone <repo-url>
 cd clinic-admin-api
+
+# Configure / Configurar
+cp .env.example .env
+# Edit .env with your credentials / Editar .env con tus credenciales
+
+# Start / Iniciar
+chmod +x docker.sh
+./docker.sh dev
 ```
 
-### 2. Configurar variables de entorno
+**Services / Servicios:**
 
-Copiar el archivo de ejemplo y editar con tus credenciales:
+- API: <http://localhost:8080>
+- Docs: <http://localhost:8080/docs>
+- Health: <http://localhost:8080/actuator/health>
+- PostgreSQL: localhost:5432
+
+---
+
+## Environment Variables / Variables de Entorno
 
 ```bash
-cp .env.example .env
-```
-
-Editar `.env` con los siguientes valores:
-
-```properties
-# Base de datos
+# Database / Base de datos
 POSTGRES_DB=mental_clinic
 POSTGRES_USER=clinic_user
 POSTGRES_PASSWORD=clinic_secret_2024
 
-# API Key de IA (requerida)
-DEEPSEEK_API_KEY=sk-tu-api-key-aqui
+# AI (Required / Requerido)
+DEEPSEEK_API_KEY=sk-your-key-here
 
-# Seguridad JWT (OBLIGATORIO en producción)
-# Mínimo 32 caracteres cada uno
-JWT_ACCESS_SECRET=tu-secret-de-access-token-muy-seguro-min-32-chars
-JWT_REFRESH_SECRET=tu-secret-de-refresh-token-muy-seguro-min-32-chars
-```
-
-### 3. Dar permisos al script
-
-```bash
-chmod +x docker.sh
+# JWT Security (Min 32 chars / Mín 32 caracteres)
+JWT_ACCESS_SECRET=your-access-secret-min-32-chars
+JWT_REFRESH_SECRET=your-refresh-secret-min-32-chars
 ```
 
 ---
 
-## Arranque de la Aplicación
-
-### Comandos disponibles
-
-| Comando             | Descripción                              |
-| ------------------- | ---------------------------------------- |
-| `./docker.sh dev`   | Desarrollo: App + PostgreSQL en Docker   |
-| `./docker.sh local` | App local (Maven) + PostgreSQL en Docker |
-| `./docker.sh prod`  | Producción: Todo en Docker, optimizado   |
-| `./docker.sh db`    | Solo base de datos PostgreSQL            |
-
-### Desarrollo completo (Docker)
-
-Inicia la aplicación y la base de datos en contenedores:
+## Docker Commands / Comandos Docker
 
 ```bash
-./docker.sh dev
-```
-
-Servicios disponibles:
-
-- API: <http://localhost:8080>
-- Swagger UI: <http://localhost:8080/swagger-ui.html>
-- Health: <http://localhost:8080/actuator/health>
-- PostgreSQL: localhost:5432
-
-### Desarrollo local (Hot Reload)
-
-Para desarrollo con recarga automática de cambios:
-
-```bash
-./docker.sh local
-```
-
-Esto inicia PostgreSQL en Docker y la aplicación con Maven (permite hot reload).
-
-### Ver logs
-
-```bash
-./docker.sh dev-logs    # Logs de desarrollo
-./docker.sh db-logs     # Logs de PostgreSQL
-```
-
-### Detener servicios
-
-```bash
-./docker.sh dev-stop    # Detener desarrollo
-./docker.sh prod-stop   # Detener producción
-```
-
-### Otros comandos útiles
-
-```bash
-./docker.sh status      # Estado de contenedores
-./docker.sh db-shell    # Consola PostgreSQL (psql)
-./docker.sh build       # Reconstruir imagen Docker
-./docker.sh clean       # Limpiar contenedores y volúmenes
-./docker.sh help        # Ver todos los comandos
+./docker.sh dev         # Development mode / Modo desarrollo
+./docker.sh local       # Local dev (hot reload) / Dev local (recarga)
+./docker.sh prod        # Production mode / Modo producción
+./docker.sh db          # Database only / Solo base de datos
+./docker.sh status      # Container status / Estado contenedores
+./docker.sh dev-logs    # View logs / Ver logs
+./docker.sh clean       # Clean all / Limpiar todo
+./docker.sh help        # All commands / Todos los comandos
 ```
 
 ---
 
-## Endpoints
+## Authentication / Autenticación
 
-### API Versionada
-
-Todos los endpoints ahora soportan versionado. Se recomienda usar `/api/v1/`:
-
-| Versión | Prefijo     | Estado      |
-| ------- | ----------- | ----------- |
-| v1      | `/api/v1/`  | ✅ Activo   |
-| Legacy  | `/api/`     | ⚠️ Deprecado |
-
-Los endpoints legacy añaden headers de deprecación:
-- `X-API-Deprecated: true`
-- `X-API-Sunset-Date: 2026-06-30`
-- `X-API-Successor: /api/v1/...`
-
-### Públicos (sin autenticación)
-
-| Método | Ruta                    | Descripción               |
-| ------ | ----------------------- | ------------------------- |
-| GET    | `/swagger-ui.html`      | Documentación interactiva |
-| GET    | `/actuator/health`      | Estado de salud           |
-| POST   | `/api/v1/auth/login`    | Autenticación             |
-| POST   | `/api/v1/auth/refresh`  | Renovar tokens            |
-
-### Protegidos (requieren JWT)
-
-| Método | Ruta                    | Descripción        |
-| ------ | ----------------------- | ------------------ |
-| GET    | `/api/v1/patients`      | Listar pacientes   |
-| POST   | `/api/v1/patients`      | Crear paciente     |
-| GET    | `/api/v1/psychologists` | Listar psicólogos  |
-| POST   | `/api/v1/appointments`  | Crear cita         |
-| GET    | `/api/v1/rooms`         | Listar salas       |
-| POST   | `/api/v1/agent/chat`    | Interactuar con IA |
-
----
-
-## Autenticación
-
-### Sistema de Tokens Duales
-
-El sistema implementa tokens de acceso y refresh con seguridad máxima:
-
-| Token         | Duración  | Propósito                    |
-| ------------- | --------- | ---------------------------- |
-| Access Token  | 30 min    | Autenticación de requests    |
-| Refresh Token | 14 días   | Renovar access tokens        |
-
-### Características de Seguridad
-
-- **Tokens de un solo uso**: El refresh token se invalida al usarlo
-- **Detección de robo**: Si se reutiliza un token revocado, se cierran TODAS las sesiones
-- **Límite de sesiones**: Máximo 5 sesiones activas por usuario
-- **Rotación automática**: Cada refresh genera un nuevo par de tokens
-
-### Usuarios de prueba
-
-| Usuario         | Password | Rol               |
-| --------------- | -------- | ----------------- |
-| admin           | 123      | ROLE_ADMIN        |
-| doc             | 123      | ROLE_PSYCHOLOGIST |
-| pepe@test.com   | 123      | ROLE_PATIENT      |
-
-### Obtener token
+### Login
 
 ```bash
 curl -X POST http://localhost:8080/api/v1/auth/login \
@@ -212,371 +91,157 @@ curl -X POST http://localhost:8080/api/v1/auth/login \
   -d '{"username":"admin","password":"123"}'
 ```
 
-Respuesta:
+### Test Users / Usuarios de Prueba
 
-```json
-{
-  "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-}
-```
+| Username       | Password | Role              |
+|----------------|----------|-------------------|
+| admin          | 123      | ROLE_ADMIN        |
+| doc            | 123      | ROLE_PSYCHOLOGIST |
+| <pepe@test.com>  | 123      | ROLE_PATIENT      |
 
-### Renovar tokens
-
-```bash
-curl -X POST http://localhost:8080/api/v1/auth/refresh \
-  -H "Content-Type: application/json" \
-  -d '{"refreshToken":"<tu-refresh-token>"}'
-```
-
-### Usar token en peticiones
+### Token Usage / Uso de Token
 
 ```bash
-curl -X GET http://localhost:8080/api/v1/patients \
-  -H "Authorization: Bearer <tu-access-token>"
+curl http://localhost:8080/api/v1/patients \
+  -H "Authorization: Bearer <your-token>"
 ```
-
-### Usar token en Swagger UI
-
-1. Abrir <http://localhost:8080/swagger-ui.html>
-2. Click en el botón "Authorize"
-3. Ingresar: `Bearer <tu-access-token>`
-4. Click en "Authorize"
-5. Ya puedes probar los endpoints protegidos
 
 ---
 
-## Asistente Administrativo de IA
+## AI Assistant / Asistente IA
 
-El sistema incluye un **Asistente Administrativo** (powered by DeepSeek) que facilita la gestión de citas y administración de la clínica mediante lenguaje natural.
+**Administrative tasks only** / **Solo tareas administrativas**
 
-### ⚠️ IMPORTANTE: Alcance del Asistente
+### Can Do / Puede Hacer
 
-Este asistente es **EXCLUSIVAMENTE para tareas administrativas**. El sistema **JAMÁS** menciona ni maneja temas clínicos.
+- Book/cancel appointments / Agendar/cancelar citas
+- Register/search patients / Registrar/buscar pacientes
+- Check availability / Consultar disponibilidad
+- Manage calendar / Gestionar calendario
 
-✅ **PUEDE:**
-- Agendar, consultar y cancelar citas
-- Registrar y buscar pacientes
-- Consultar disponibilidad de psicólogos
-- Listar horarios disponibles
-- Crear psicólogos y salas (Admin)
-- Gestionar el calendario de citas
+### Cannot Do / NO Puede Hacer
 
-❌ **NO PUEDE (ni DEBE):**
-- Brindar consultas psicológicas
-- Diagnosticar o evaluar síntomas
-- Recomendar terapias o tratamientos
-- Dar asesoramiento clínico
-- Acceder a notas clínicas privadas
+- Clinical consultations / Consultas clínicas
+- Diagnoses / Diagnósticos
+- Therapy recommendations / Recomendaciones terapéuticas
+- Medical advice / Asesoramiento médico
 
-### Herramientas Disponibles por Rol
+### Usage Example / Ejemplo de Uso
 
-| Herramienta             | Admin | Psicólogo | Paciente | Descripción                          |
-|-------------------------|-------|-----------|----------|--------------------------------------|
-| calculateDateTool       | ✅    | ✅        | ✅       | Convierte fechas relativas a ISO     |
-| listAppointmentsTool    | ✅    | ✅        | ✅       | Lista citas futuras (según permisos) |
-| listPsychologistsTool   | ✅    | ✅        | ✅       | Lista psicólogos y especialidades    |
-| searchPatientTool       | ✅    | ✅        | ❌       | Busca pacientes por nombre/DNI       |
-| createPatientTool       | ✅    | ✅        | ❌       | Registra nuevo paciente              |
-| checkAvailabilityTool   | ✅    | ✅        | ❌       | Ver horarios 100% libres             |
-| bookAppointmentTool     | ✅    | ✅        | ❌       | Agendar nueva cita                   |
-| cancelAppointmentTool   | ✅    | ✅        | ❌       | Cancelar cita                        |
-| listRoomsTool           | ✅    | ✅        | ❌       | Listar salas disponibles             |
-| createPsychologistTool  | ✅    | ❌        | ❌       | Contratar psicólogo (solo Admin)     |
-| createRoomTool          | ✅    | ❌        | ❌       | Crear sala (solo Admin)              |
-
-### Ejemplos de Uso
-
-#### Paciente: Consultar sus citas
 ```bash
-curl -X POST http://localhost:8080/api/admin-assistant/chat \
-  -H "Authorization: Bearer <token-paciente>" \
-  -H "Content-Type: application/json" \
-  -d '{"text":"Muestra mis citas de la próxima semana"}'
-```
-
-#### Psicólogo: Agendar una cita
-```bash
-curl -X POST http://localhost:8080/api/admin-assistant/chat \
-  -H "Authorization: Bearer <token-psicologo>" \
-  -H "Content-Type: application/json" \
-  -d '{"text":"Agenda una cita para el paciente Juan Pérez DNI 12345678 conmigo el próximo martes a las 3pm"}'
-```
-
-#### Psicólogo: Consultar disponibilidad
-```bash
-curl -X POST http://localhost:8080/api/admin-assistant/chat \
+curl -X POST http://localhost:8080/api/v1/agent/chat \
   -H "Authorization: Bearer <token>" \
   -H "Content-Type: application/json" \
-  -d '{"text":"¿Qué horarios tengo libres mañana?"}'
+  -d '{"text":"Schedule appointment for Juan Perez tomorrow at 3pm"}'
 ```
 
-#### Admin: Registrar paciente y agendar
-```bash
-curl -X POST http://localhost:8080/api/admin-assistant/chat \
-  -H "Authorization: Bearer <token-admin>" \
-  -H "Content-Type: application/json" \
-  -d '{"text":"Registra a María García, email maria@example.com, teléfono 987654321, DNI 87654321 y agéndale una cita con la Dra. Martínez para el viernes a las 10am"}'
-```
+**Tools by Role / Herramientas por Rol:**
 
-#### ⛔ Solicitud RECHAZADA (fuera de alcance)
-```bash
-# Usuario: "Tengo ansiedad, ¿qué debo hacer?"
-# Respuesta del Asistente: 
-# "No estoy autorizado para consultas clínicas. Por favor, 
-#  agende una cita con un psicólogo profesional."
-```
+| Tool                    | Admin  | Psychologist | Patient |
+|-------------------------|--------|--------------|---------|
+| List appointments       | Yes/Si |Yes/Si        |Yes/Si.  |
+| Book appointment        | Yes/Si |Yes/Si        | No      |
+| Search patients         | Yes/Si |Yes/Si        | No      |
+| Create psychologist     | Yes/Si |Yes/Si        | No      |
 
 ---
 
 ## Rate Limiting
 
-La API implementa rate limiting para protección contra abuso:
+| Endpoint      | Limit           | Purpose / Propósito              |
+|---------------|-----------------|----------------------------------|
+| Auth          | 10 req/min      | Brute force prevention / Anti fuerza bruta |
+| AI/Chat       | 20 req/min      | API abuse prevention / Anti abuso API |
+| General       | 100 req/min     | Normal usage / Uso normal |
 
-| Tipo de Endpoint | Límite           | Descripción                    |
-| ---------------- | ---------------- | ------------------------------ |
-| Autenticación    | 10 req/minuto    | Prevenir fuerza bruta          |
-| IA/Chat          | 20 req/minuto    | Prevenir abuso de API externa  |
-| General          | 100 req/minuto   | Uso normal de la API           |
+**Response Headers:**
 
-### Headers de respuesta
-
-- `X-RateLimit-Limit`: Límite de requests por minuto
-- `X-RateLimit-Remaining`: Requests restantes
-- `Retry-After`: Segundos hasta reset (cuando límite excedido)
-
-### Respuesta cuando se excede el límite
-
-```
-HTTP/1.1 429 Too Many Requests
-X-RateLimit-Limit: 10
-X-RateLimit-Remaining: 0
-Retry-After: 60
-```
+- `X-RateLimit-Limit`: Limit / Límite
+- `X-RateLimit-Remaining`: Remaining / Restantes
+- `Retry-After`: Seconds to reset / Segundos para reset
 
 ---
 
-## Migraciones de Base de Datos
+## API Endpoints
 
-El proyecto usa **Flyway** para gestionar migraciones de base de datos.
+### Public / Públicos
 
-### Ubicación de migraciones
+| Method | Path                   | Description                      |
+|--------|------------------------|----------------------------------|
+| POST   | `/api/v1/auth/login`   | Login / Iniciar sesión          |
+| POST   | `/api/v1/auth/refresh` | Refresh token / Renovar token   |
+| GET    | `/actuator/health`     | Health check                     |
+| GET    | `/docs`                | API documentation / Documentación|
 
-```
-src/main/resources/db/migration/
-├── V1__initial_schema.sql    # Esquema inicial
-└── V2__seed_data.sql         # Datos de prueba
-```
+### Protected / Protegidos
 
-### Convención de nombres
+| Method | Path                      | Description                    |
+|--------|---------------------------|--------------------------------|
+| GET    | `/api/v1/patients`        | List patients / Listar pacientes |
+| POST   | `/api/v1/patients`        | Create patient / Crear paciente |
+| GET    | `/api/v1/psychologists`   | List psychologists / Listar psicólogos |
+| POST   | `/api/v1/appointments`    | Create appointment / Crear cita |
+| POST   | `/api/v1/agent/chat`      | AI assistant / Asistente IA    |
 
-```
-V{version}__{description}.sql
-```
+---
 
-- `V1__initial_schema.sql` - Versión 1, esquema inicial
-- `V2__seed_data.sql` - Versión 2, datos de prueba
+## Database Migrations / Migraciones
 
-### Crear nueva migración
+**Location / Ubicación:** `src/main/resources/db/migration/`
 
 ```sql
--- V3__add_appointment_notes.sql
+-- V3__add_notes.sql
 ALTER TABLE appointments ADD COLUMN notes TEXT;
 ```
 
-### Comandos útiles
+**Commands / Comandos:**
 
 ```bash
-# Ver estado de migraciones
-./mvnw flyway:info
-
-# Aplicar migraciones pendientes
-./mvnw flyway:migrate
-
-# Reparar historial corrupto (solo desarrollo)
-./mvnw flyway:repair
+./mvnw flyway:info      # Status / Estado
+./mvnw flyway:migrate   # Apply / Aplicar
+./mvnw flyway:repair    # Fix / Reparar
 ```
 
 ---
 
-## Monitoreo
-
-### Health Check
+## Testing / Pruebas
 
 ```bash
-curl http://localhost:8080/actuator/health
-```
-
-### Métricas
-
-```bash
-curl http://localhost:8080/actuator/metrics
-```
-
-### Estadísticas de caché
-
-```bash
-curl http://localhost:8080/actuator/caches
-```
-
-### Logging
-
-**Desarrollo**: Logs legibles con colores en consola
-
-**Producción**: Logs JSON estructurados para agregadores
-
-```json
-{
-  "timestamp": "2025-01-15T10:30:00.000-05:00",
-  "level": "INFO",
-  "logger": "c.c.mentalhealth.service.AppointmentService",
-  "message": "Cita creada con ID 123"
-}
-```
-
----
-
-## Estructura del Proyecto
-
-```
-clinic-admin-api/
-├── docker.sh                    # Script principal de comandos
-├── docker-compose.yml           # Configuración Docker
-├── Dockerfile                   # Imagen de la aplicación
-├── pom.xml                      # Dependencias Maven
-├── docker/
-│   └── init-db/                 # Scripts de inicialización PostgreSQL
-└── src/
-    ├── main/
-    │   ├── java/com/clinica/mentalhealth/
-    │   │   ├── ai/              # Herramientas de IA
-    │   │   │   └── tools/       # DTOs para function calling
-    │   │   ├── config/          # Configuración (Security, Cache, Rate Limit, etc.)
-    │   │   ├── domain/          # Entidades (User, Patient, Appointment, etc.)
-    │   │   ├── repository/      # Repositorios R2DBC
-    │   │   ├── security/        # JWT, Filtros de autenticación
-    │   │   ├── service/         # Lógica de negocio
-    │   │   └── web/             # Controladores REST
-    │   │       ├── dto/         # DTOs de request/response
-    │   │       └── exception/   # Manejo global de errores
-    │   └── resources/
-    │       ├── db/migration/    # Migraciones Flyway
-    │       ├── application.properties       # Configuración base
-    │       ├── application-dev.properties   # Perfil desarrollo
-    │       ├── application-prod.properties  # Perfil producción
-    │       └── logback-spring.xml           # Configuración de logging
-    └── test/
-        ├── java/                # Tests unitarios y de integración
-        └── resources/           # Configuración para tests
-```
-
----
-
-## Testing
-
-### Ejecutar todos los tests
-
-```bash
+# All tests / Todas las pruebas
 ./mvnw test
-```
 
-### Ejecutar tests específicos
-
-```bash
-# Tests unitarios (rápidos, sin Docker)
+# Unit tests only / Solo unitarias
 ./mvnw test -Dtest=*ServiceTest
 
-# Tests de integración (requieren Docker)
-./mvnw test -Dtest=*IntegrationTest
-```
-
-### Cobertura de tests
-
-```bash
+# Coverage report / Reporte de cobertura
 ./mvnw test jacoco:report
-# Ver reporte en target/site/jacoco/index.html
-```
-
-### Tests disponibles
-
-| Test                                  | Tipo        | Descripción                           |
-| ------------------------------------- | ----------- | ------------------------------------- |
-| `AppointmentServiceTest`              | Unitario    | Validaciones de citas                 |
-| `PatientServiceTest`                  | Unitario    | CRUD de pacientes                     |
-| `DateCalculationServiceTest`          | Unitario    | Cálculo de fechas relativas           |
-| `JwtServiceTest`                      | Unitario    | Generación/validación de tokens       |
-| `AppointmentRepositoryIntegrationTest`| Integración | Queries con PostgreSQL real           |
-
----
-
-## Perfiles de Ejecución
-
-| Perfil | Base de Datos | Logs        | Swagger | Rate Limit | Uso        |
-| ------ | ------------- | ----------- | ------- | ---------- | ---------- |
-| dev    | PostgreSQL    | DEBUG       | Sí      | Sí         | Desarrollo |
-| prod   | PostgreSQL    | JSON/WARN   | No      | Sí         | Producción |
-| test   | H2 / Testcontainers | WARN  | No      | No         | Testing    |
-
-Activar un perfil:
-
-```bash
-export SPRING_PROFILES_ACTIVE=dev
-```
-
-O en Docker Compose (ya configurado automáticamente).
-
----
-
-## Comandos Maven
-
-```bash
-# Compilar
-./mvnw clean compile
-
-# Ejecutar tests
-./mvnw test
-
-# Empaquetar (genera JAR)
-./mvnw clean package -DskipTests
-
-# Ejecutar directamente
-./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
 ```
 
 ---
 
-## Solución de Problemas
+## Project Structure / Estructura
 
-### La aplicación no inicia
-
-1. Verificar que Docker esté corriendo: `docker info`
-2. Verificar que PostgreSQL esté saludable: `./docker.sh status`
-3. Revisar logs: `./docker.sh dev-logs`
-
-### Error de conexión a base de datos
-
-1. Verificar que el contenedor de PostgreSQL esté corriendo
-2. Esperar unos segundos a que PostgreSQL esté listo
-3. Verificar credenciales en `.env`
-
-### API Key de DeepSeek no funciona
-
-1. Verificar que la key esté configurada en `.env`
-2. Verificar que la key sea válida en <https://platform.deepseek.com/>
-3. Reiniciar la aplicación después de cambiar `.env`
-
-### Error "Secret key too short"
-
-1. Las claves JWT deben tener al menos 32 caracteres
-2. Verificar `JWT_ACCESS_SECRET` y `JWT_REFRESH_SECRET` en `.env`
-
-### Rate limit excedido (429)
-
-1. Esperar 60 segundos para que se resetee el límite
-2. Verificar el header `Retry-After` en la respuesta
+``` text
+src/main/java/com/clinica/mentalhealth/
+├── ai/              # AI tools / Herramientas IA
+├── config/          # Configuration / Configuración
+├── domain/          # Entities / Entidades
+├── repository/      # R2DBC repositories / Repositorios
+├── security/        # JWT security / Seguridad JWT
+├── service/         # Business logic / Lógica de negocio
+└── web/             # REST controllers / Controladores REST
+```
 
 ---
 
-## Licencia
+## Troubleshooting / Solución de Problemas
 
-Proyecto con fines educativos.
+| Problem / Problema                | Solution / Solución                          |
+|-----------------------------------|----------------------------------------------|
+| App won't start / No inicia       | `docker info` + `./docker.sh status`        |
+| DB connection error / Error DB    | Wait 5s / Esperar 5s, check `.env`          |
+| Invalid API key / Key inválida    | Check DeepSeek console / Verificar consola  |
+| JWT secret too short / Secret corto | Min 32 chars in `.env` / Mín 32 chars      |
+| Rate limit 429                    | Wait 60s / Esperar 60s                      |
+
+---
